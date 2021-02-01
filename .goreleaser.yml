@@ -1,0 +1,39 @@
+project_name: vergo
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - main: main.go
+    binary: vergo
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s
+      - -w
+      - -X sky.uk/vergo/cmd.version={{.Version}}
+      - -X sky.uk/vergo/cmd.commit={{.Commit}}
+      - -X sky.uk/vergo/cmd.date={{.Date}}
+      - -X sky.uk/vergo/cmd.builtBy=goreleaser
+
+snapshot:
+  name_template: "{{ .Env.GORELEASER_CURRENT_VERSION }}"
+
+release:
+  disable: true
+
+uploads:
+  # You can have multiple Put instances.
+  -
+    # Unique name of your Put instance. Used to identify the instance.
+    name: nexus
+    method: PUT
+    mode: archive
+    target: '{{ .Env.UPLOAD_TARGET }}/{{ .ProjectName }}/{{ .Version }}/'
