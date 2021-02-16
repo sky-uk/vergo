@@ -5,7 +5,7 @@ import (
 	"github.com/Masterminds/semver"
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-billy/v5/util"
-	. "github.com/go-git/go-git/v5"
+	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/storage/memory"
@@ -31,9 +31,67 @@ func defaultSignature() *object.Signature {
 	}
 }
 
-func InMemoryRepositoryWithDefaultCommit(t *testing.T) *Repository {
+type TestRepo struct {
+	t    *testing.T
+	Repo *gogit.Repository
+}
+
+func (t *TestRepo) Head() *plumbing.Reference {
+	t.t.Helper()
+	head, err := t.Repo.Head()
+	assert.Nil(t.t, err)
+	return head
+}
+
+func (t *TestRepo) Worktree() *gogit.Worktree {
+	t.t.Helper()
+	worktree, err := t.Repo.Worktree()
+	assert.Nil(t.t, err)
+	return worktree
+}
+
+func (t *TestRepo) CreateTag(name string, hash plumbing.Hash) *plumbing.Reference {
+	t.t.Helper()
+	ref, err := t.Repo.CreateTag(name, hash, nil)
+	assert.Nil(t.t, err)
+	assert.NotNil(t.t, ref)
+	return ref
+}
+
+func (t *TestRepo) DoCommit(file string) {
+	t.t.Helper()
+	DoCommitWithMessage(t.t, t.Repo, file, file)
+}
+
+func (t *TestRepo) BranchExists(branchName string) bool {
+	t.t.Helper()
+	branches, err := t.Repo.Branches()
+	assert.Nil(t.t, err)
+	defer branches.Close()
+	branchExists := false
+	for {
+		branch, err := branches.Next()
+		if err != nil {
+			break
+		}
+		if branch.Name().Short() == branchName {
+			branchExists = true
+		}
+	}
+	return branchExists
+}
+
+func NewTestRepo(t *testing.T) TestRepo {
 	t.Helper()
-	r, err := Init(memory.NewStorage(), memfs.New())
+	return TestRepo{
+		t:    t,
+		Repo: inMemoryRepositoryWithDefaultCommit(t),
+	}
+}
+
+func inMemoryRepositoryWithDefaultCommit(t *testing.T) *gogit.Repository {
+	t.Helper()
+	r, err := gogit.Init(memory.NewStorage(), memfs.New())
 	assert.Nil(t, err)
 	DoCommit(t, r, "foo")
 	_, err = r.Head()
@@ -41,31 +99,20 @@ func InMemoryRepositoryWithDefaultCommit(t *testing.T) *Repository {
 	return r
 }
 
-func PersistentRepository(t *testing.T) (*Repository, string) {
+func PersistentRepository(t *testing.T) (*gogit.Repository, string) {
 	t.Helper()
 	tempDir := t.TempDir()
-	r, err := PlainInit(tempDir, false)
+	r, err := gogit.PlainInit(tempDir, false)
 	assert.Nil(t, err)
 	return r, tempDir
 }
 
-func PersistentRepositoryWithDefaultCommit(t *testing.T) (*Repository, string) {
-	t.Helper()
-	tempDir := t.TempDir()
-	r, err := PlainInit(tempDir, false)
-	assert.Nil(t, err)
-	DoCommit(t, r, "foo")
-	_, err = r.Head()
-	assert.Nil(t, err)
-	return r, tempDir
-}
-
-func DoCommit(t *testing.T, r *Repository, file string) {
+func DoCommit(t *testing.T, r *gogit.Repository, file string) {
 	t.Helper()
 	DoCommitWithMessage(t, r, file, file)
 }
 
-func DoCommitWithMessage(t *testing.T, r *Repository, file, message string) {
+func DoCommitWithMessage(t *testing.T, r *gogit.Repository, file, message string) {
 	t.Helper()
 	w, err := r.Worktree()
 	assert.Nil(t, err)
@@ -76,14 +123,14 @@ func DoCommitWithMessage(t *testing.T, r *Repository, file, message string) {
 	_, err = w.Add(file)
 	assert.Nil(t, err)
 
-	_, err = w.Commit(message, &CommitOptions{
+	_, err = w.Commit(message, &gogit.CommitOptions{
 		Author:    defaultSignature(),
 		Committer: defaultSignature(),
 	})
 	assert.Nil(t, err)
 }
 
-func PrintTags(t *testing.T, r *Repository) {
+func PrintTags(t *testing.T, r *gogit.Repository) {
 	t.Helper()
 	iter, err := r.Tags()
 	assert.Nil(t, err)

@@ -4,6 +4,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"os"
+	bumpImpl "sky.uk/vergo/bump"
+	vergo "sky.uk/vergo/git"
 )
 
 func RootCmd() *cobra.Command {
@@ -24,9 +26,6 @@ func RootCmd() *cobra.Command {
 	return rootCmd
 }
 
-//nolint:gochecknoglobals
-var rootCmd = RootCmd()
-
 type RootFlags struct {
 	remote, tagPrefix, tagPrefixRaw, repositoryLocation string
 	logLevel                                            log.Level
@@ -35,34 +34,33 @@ type RootFlags struct {
 }
 
 func readRootFlags(cmd *cobra.Command) (*RootFlags, error) {
-	var emptyRootFlags = RootFlags{}
 	remote, err := cmd.Flags().GetString(remoteName)
 	if err != nil {
-		return &emptyRootFlags, err
+		return nil, err
 	}
 	versionedBranches, err := cmd.Flags().GetStringSlice(versionedBranchNames)
 	if err != nil {
-		return &emptyRootFlags, err
+		return nil, err
 	}
 	dryRun, err := cmd.Flags().GetBool(dryRun)
 	if err != nil {
-		return &emptyRootFlags, err
+		return nil, err
 	}
 	withPrefix, err := cmd.Flags().GetBool(withPrefix)
 	if err != nil {
-		return &emptyRootFlags, err
+		return nil, err
 	}
 	prefix, err := cmd.Flags().GetString(tagPrefix)
 	if err != nil {
-		return &emptyRootFlags, err
+		return nil, err
 	}
 	repositoryLocation, err := cmd.Flags().GetString(repositoryLocation)
 	if err != nil {
-		return &emptyRootFlags, err
+		return nil, err
 	}
 	logLevelParam, err := cmd.Flags().GetString(logLevel)
 	if err != nil {
-		return &emptyRootFlags, err
+		return nil, err
 	}
 	logLevel, err := log.ParseLevel(logLevelParam)
 	if err != nil {
@@ -85,5 +83,11 @@ func readRootFlags(cmd *cobra.Command) (*RootFlags, error) {
 
 // Execute executes the root command.
 func Execute() error {
+	var rootCmd = RootCmd()
+	rootCmd.AddCommand(BumpCmd(bumpImpl.Bump, vergo.PushTag))
+	rootCmd.AddCommand(GetCmd(vergo.LatestRef, vergo.PreviousRef, vergo.CurrentVersion))
+	rootCmd.AddCommand(PushCmd())
+	rootCmd.AddCommand(ListCmd(vergo.ListRefs))
+	rootCmd.AddCommand(VersionCmd())
 	return rootCmd.Execute()
 }

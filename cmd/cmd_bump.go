@@ -1,14 +1,25 @@
 package cmd
 
 import (
+	"github.com/Masterminds/semver"
 	"github.com/go-git/go-git/v5"
+	gogit "github.com/go-git/go-git/v5"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	. "sky.uk/vergo/bump"
-	vergo "sky.uk/vergo/git"
 )
 
-func BumpCmd() *cobra.Command {
+type BumpFunc func(
+	repo *gogit.Repository,
+	tagPrefix, increment string,
+	versionedBranches []string,
+	dryRun bool) (*semver.Version, error)
+
+type PushTagFunc func(
+	repo *gogit.Repository,
+	socket, version, prefix, remote string,
+	dryRun bool) error
+
+func BumpCmd(bump BumpFunc, pushTag PushTagFunc) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:       "release (patch|minor|major)",
 		Short:     "increments the version numbers",
@@ -21,15 +32,11 @@ func BumpCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			validationFlags, err := readValidationFlags(cmd)
+			pushTagParam, err := cmd.Flags().GetBool(pushTagParam)
 			if err != nil {
 				return err
 			}
-			pushTag, err := cmd.Flags().GetBool(pushTag)
-			if err != nil {
-				return err
-			}
-			socket, err := checkAuthSocket(pushTag)
+			socket, err := checkAuthSocket(pushTagParam)
 			if err != nil {
 				return err
 			}
@@ -37,18 +44,12 @@ func BumpCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			options := Options{
-				VersionedBranches:      rootFlags.versionedBranches,
-				FirstVersionIfNoTag:    validationFlags.firstVersion,
-				SkipLatestTagOnTheHead: validationFlags.skipLatestTagOnTheHead,
-				DryRun:                 rootFlags.dryRun,
-			}
-			version, err := Bump(repo, rootFlags.tagPrefix, increment, options)
+			version, err := bump(repo, rootFlags.tagPrefix, increment, rootFlags.versionedBranches, rootFlags.dryRun)
 			if err != nil {
 				return err
 			}
-			if pushTag {
-				err = vergo.PushTag(repo, socket, version.String(), rootFlags.tagPrefix, rootFlags.remote, rootFlags.dryRun)
+			if pushTagParam {
+				err = pushTag(repo, socket, version.String(), rootFlags.tagPrefix, rootFlags.remote, rootFlags.dryRun)
 				if err != nil {
 					return err
 				}
@@ -63,12 +64,6 @@ func BumpCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().BoolP(pushTag, "u", false, "push the new tag")
-	cmd.Flags().Bool(skipValidationLatestTagOnTheHead, true, "skips tagging if head has the latest tag")
-	cmd.Flags().StringP(skipValidationFirstVersion, "f", firstVersion, "first version to be used if no tag found")
+	cmd.Flags().BoolP(pushTagParam, "u", false, "push the new tag")
 	return cmd
-}
-
-func init() {
-	rootCmd.AddCommand(BumpCmd())
 }

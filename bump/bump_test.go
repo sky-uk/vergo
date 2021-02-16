@@ -1,31 +1,23 @@
 package bump_test
 
 import (
-	"errors"
 	"github.com/Masterminds/semver"
 	"github.com/go-git/go-billy/v5/memfs"
-	. "github.com/go-git/go-git/v5"
+	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/storage/memory"
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	. "sky.uk/vergo/bump"
 	. "sky.uk/vergo/internal"
 	"testing"
 )
 
-func init() {
-	log.SetLevel(log.TraceLevel)
-}
-
-const noFirstVersion = ""
 const firstVersion = "0.1.0"
-const dryRun = false
-const DontSkipLatestTagOnTheHead = false
-const skipLatestTagOnTheHead = true
+
+var mainBranch = []string{"master"}
 
 //nolint:scopelint,paralleltest
-func TestShouldIncrementPatch(t *testing.T) {
+func TestShouldIncrementVersion(t *testing.T) {
 	versions := []struct {
 		increment string
 		pre       *semver.Version
@@ -57,22 +49,16 @@ func TestShouldIncrementPatch(t *testing.T) {
 }
 
 //nolint:scopelint,paralleltest
-func TestNoTagNoCommit(t *testing.T) {
-	prefixes := []string{"", "app", "apple"}
+func TestBumpShouldFailWhenThereIsNoCommit(t *testing.T) {
+	prefixes := []string{"", "app", "application"}
 	increments := []string{"patch", "minor", "major"}
 	for _, prefix := range prefixes {
 		for _, increment := range increments {
 			t.Run(prefix+"-"+increment, func(t *testing.T) {
 				fs := memfs.New()
-				r, err := Init(memory.NewStorage(), fs)
+				r, err := gogit.Init(memory.NewStorage(), fs)
 				assert.Nil(t, err)
-				options := Options{
-					VersionedBranches:      []string{"master"},
-					FirstVersionIfNoTag:    noFirstVersion,
-					SkipLatestTagOnTheHead: DontSkipLatestTagOnTheHead,
-					DryRun:                 dryRun,
-				}
-				_, err = Bump(r, prefix, increment, options)
+				_, err = Bump(r, prefix, increment, mainBranch, false)
 				assert.Regexp(t, "reference not found", err)
 			})
 		}
@@ -80,41 +66,14 @@ func TestNoTagNoCommit(t *testing.T) {
 }
 
 //nolint:scopelint,paralleltest
-func TestNoTag(t *testing.T) {
-	prefixes := []string{"", "app", "apple"}
+func TestBumpShouldCreateFirstTag(t *testing.T) {
+	prefixes := []string{"", "app", "application"}
 	increments := []string{"patch", "minor", "major"}
 	for _, prefix := range prefixes {
 		for _, increment := range increments {
 			t.Run(prefix+"-"+increment, func(t *testing.T) {
-				r := InMemoryRepositoryWithDefaultCommit(t)
-				options := Options{
-					VersionedBranches:      []string{"master"},
-					FirstVersionIfNoTag:    noFirstVersion,
-					SkipLatestTagOnTheHead: DontSkipLatestTagOnTheHead,
-					DryRun:                 dryRun,
-				}
-				_, err := Bump(r, prefix, increment, options)
-				assert.Regexp(t, "no tag found", err)
-			})
-		}
-	}
-}
-
-//nolint:scopelint,paralleltest
-func TestCreateFirstTag(t *testing.T) {
-	prefixes := []string{"", "app", "apple"}
-	increments := []string{"patch", "minor", "major"}
-	for _, prefix := range prefixes {
-		for _, increment := range increments {
-			t.Run(prefix+"-"+increment, func(t *testing.T) {
-				r := InMemoryRepositoryWithDefaultCommit(t)
-				options := Options{
-					VersionedBranches:      []string{"master"},
-					FirstVersionIfNoTag:    firstVersion,
-					SkipLatestTagOnTheHead: DontSkipLatestTagOnTheHead,
-					DryRun:                 dryRun,
-				}
-				newVersion, err := Bump(r, prefix, increment, options)
+				r := NewTestRepo(t)
+				newVersion, err := Bump(r.Repo, prefix, increment, mainBranch, false)
 				assert.Nil(t, err)
 				assert.Equal(t, NewVersionT(t, firstVersion), newVersion)
 			})
@@ -123,114 +82,41 @@ func TestCreateFirstTag(t *testing.T) {
 }
 
 //nolint:scopelint,paralleltest
-func TestRefOnTheHead(t *testing.T) {
-	prefixes := []string{"", "app", "apple"}
+func TestShouldBeAbleToCallBumpMultipleTimes(t *testing.T) {
+	prefixes := []string{"", "app", "application"}
 	increments := []string{"patch", "minor", "major"}
 	for _, prefix := range prefixes {
 		for _, increment := range increments {
 			t.Run(prefix+"-"+increment, func(t *testing.T) {
-				r := InMemoryRepositoryWithDefaultCommit(t)
-				{
-					options := Options{
-						VersionedBranches:      []string{"master"},
-						FirstVersionIfNoTag:    firstVersion,
-						SkipLatestTagOnTheHead: DontSkipLatestTagOnTheHead,
-						DryRun:                 dryRun,
-					}
-					newVersion, err := Bump(r, prefix, increment, options)
-					assert.Nil(t, err)
-					assert.Equal(t, NewVersionT(t, firstVersion), newVersion)
-				}
-				{
-					options := Options{
-						VersionedBranches:      []string{"master"},
-						FirstVersionIfNoTag:    firstVersion,
-						SkipLatestTagOnTheHead: DontSkipLatestTagOnTheHead,
-						DryRun:                 dryRun,
-					}
-					_, err := Bump(r, prefix, increment, options)
-					assert.True(t, errors.Is(err, ErrRefOnTheHead))
-				}
-			})
-		}
-	}
-}
+				r := NewTestRepo(t)
 
-//nolint:scopelint,paralleltest
-func TestSkipRefOnTheHead(t *testing.T) {
-	prefixes := []string{"", "app", "apple"}
-	increments := []string{"patch", "minor", "major"}
-	for _, prefix := range prefixes {
-		for _, increment := range increments {
-			t.Run(prefix+"-"+increment, func(t *testing.T) {
-				r := InMemoryRepositoryWithDefaultCommit(t)
-				{
-					options := Options{
-						VersionedBranches:      []string{"master"},
-						FirstVersionIfNoTag:    firstVersion,
-						SkipLatestTagOnTheHead: DontSkipLatestTagOnTheHead,
-						DryRun:                 dryRun,
-					}
-					newVersion, err := Bump(r, prefix, increment, options)
-					assert.Nil(t, err)
-					assert.Equal(t, NewVersionT(t, firstVersion), newVersion)
-				}
-				{
-					options := Options{
-						VersionedBranches:      []string{"master"},
-						FirstVersionIfNoTag:    firstVersion,
-						SkipLatestTagOnTheHead: skipLatestTagOnTheHead,
-						DryRun:                 dryRun,
-					}
-					newVersion, err := Bump(r, prefix, increment, options)
-					assert.Nil(t, err)
-					assert.Equal(t, NewVersionT(t, firstVersion), newVersion)
-				}
-			})
-		}
-	}
-}
-
-//nolint:scopelint,paralleltest
-func TestNotOnMainBranch(t *testing.T) {
-	prefixes := []string{"", "app", "apple"}
-	increments := []string{"patch", "minor", "major"}
-	for _, prefix := range prefixes {
-		for _, increment := range increments {
-			t.Run(prefix+"-"+increment, func(t *testing.T) {
-				r := InMemoryRepositoryWithDefaultCommit(t)
-				wt, err := r.Worktree()
+				firstCall, err := Bump(r.Repo, prefix, increment, mainBranch, false)
 				assert.Nil(t, err)
+				assert.Equal(t, NewVersionT(t, firstVersion), firstCall)
+
+				secondCall, err := Bump(r.Repo, prefix, increment, mainBranch, false)
+				assert.Nil(t, err)
+				assert.Equal(t, NewVersionT(t, firstVersion), secondCall)
+			})
+		}
+	}
+}
+
+//nolint:scopelint,paralleltest
+func TestBumpShouldFailWhenNotOnMainBranch(t *testing.T) {
+	prefixes := []string{"", "app", "application"}
+	increments := []string{"patch", "minor", "major"}
+	for _, prefix := range prefixes {
+		for _, increment := range increments {
+			t.Run(prefix+"-"+increment, func(t *testing.T) {
+				r := NewTestRepo(t)
 				branchName := "apple"
-				err = wt.Checkout(&CheckoutOptions{Branch: plumbing.NewBranchReferenceName(branchName), Create: true})
-				if err != nil {
-					assert.FailNow(t, "checkout failed", err)
-				}
+				err := r.Worktree().Checkout(&gogit.CheckoutOptions{Branch: plumbing.NewBranchReferenceName(branchName), Create: true})
+				assert.Nil(t, err)
+				assert.True(t, r.BranchExists(branchName))
+				assert.Equal(t, branchName, r.Head().Name().Short())
 
-				branches, err := r.Branches()
-				assert.Nil(t, err)
-				branchExists := false
-				for {
-					branch, err := branches.Next()
-					if err != nil {
-						break
-					}
-					if branch.Name().Short() == branchName {
-						branchExists = true
-					}
-				}
-				assert.True(t, branchExists)
-				branches.Close()
-				head, err := r.Head()
-				assert.Nil(t, err)
-				assert.Equal(t, branchName, head.Name().Short())
-				options := Options{
-					VersionedBranches:      []string{"master"},
-					FirstVersionIfNoTag:    noFirstVersion,
-					SkipLatestTagOnTheHead: DontSkipLatestTagOnTheHead,
-					DryRun:                 dryRun,
-				}
-				_, err = Bump(r, prefix, increment, options)
+				_, err = Bump(r.Repo, prefix, increment, mainBranch, false)
 				assert.Regexp(t, "command disabled for branches", err)
 			})
 		}
@@ -238,29 +124,18 @@ func TestNotOnMainBranch(t *testing.T) {
 }
 
 //nolint:scopelint,paralleltest
-func TestHeadlessCheckout(t *testing.T) {
+func TestBumpShouldWorkWhenHeadlessCheckout(t *testing.T) {
 	prefixes := []string{""}
 	increments := []string{"patch"}
 	for _, prefix := range prefixes {
 		for _, increment := range increments {
 			t.Run(prefix+"-"+increment, func(t *testing.T) {
-				r := InMemoryRepositoryWithDefaultCommit(t)
-				wt, err := r.Worktree()
+				r := NewTestRepo(t)
+				err := r.Worktree().Checkout(&gogit.CheckoutOptions{Hash: r.Head().Hash()})
 				assert.Nil(t, err)
-				head, err := r.Head()
-				assert.Nil(t, err)
-				err = wt.Checkout(&CheckoutOptions{Hash: head.Hash()})
-				assert.Nil(t, err)
-				head, err = r.Head()
-				assert.Nil(t, err)
-				assert.Equal(t, "HEAD", head.Name().Short())
-				options := Options{
-					VersionedBranches:      []string{"HEAD"},
-					FirstVersionIfNoTag:    firstVersion,
-					SkipLatestTagOnTheHead: DontSkipLatestTagOnTheHead,
-					DryRun:                 dryRun,
-				}
-				_, err = Bump(r, prefix, increment, options)
+				assert.Equal(t, "HEAD", r.Head().Name().Short())
+
+				_, err = Bump(r.Repo, prefix, increment, []string{"HEAD"}, false)
 				assert.Nil(t, err)
 			})
 		}
@@ -268,8 +143,8 @@ func TestHeadlessCheckout(t *testing.T) {
 }
 
 //nolint:scopelint,paralleltest
-func TestBump(t *testing.T) {
-	prefixes := []string{"", "app", "apple"}
+func TestBumpAllIncrements(t *testing.T) {
+	prefixes := []string{"", "app", "application"}
 	versions := []struct {
 		increment         string
 		versionedBranches []string
@@ -278,19 +153,19 @@ func TestBump(t *testing.T) {
 	}{
 		{
 			increment:         "patch",
-			versionedBranches: []string{"master"},
+			versionedBranches: mainBranch,
 			pre:               NewVersionT(t, "0.1.0"),
 			post:              NewVersionT(t, "0.1.1"),
 		},
 		{
 			increment:         "minor",
-			versionedBranches: []string{"master"},
+			versionedBranches: mainBranch,
 			pre:               NewVersionT(t, "0.1.0"),
 			post:              NewVersionT(t, "0.2.0"),
 		},
 		{
 			increment:         "major",
-			versionedBranches: []string{"master"},
+			versionedBranches: mainBranch,
 			pre:               NewVersionT(t, "0.1.0"),
 			post:              NewVersionT(t, "1.0.0"),
 		},
@@ -298,26 +173,13 @@ func TestBump(t *testing.T) {
 	for _, prefix := range prefixes {
 		for _, version := range versions {
 			t.Run(prefix+"-"+version.increment, func(t *testing.T) {
-				r := InMemoryRepositoryWithDefaultCommit(t)
-				head, _ := r.Head()
+				r := NewTestRepo(t)
+				r.CreateTag(prefix+version.pre.String(), r.Head().Hash())
+				r.DoCommit("bar")
 
-				ref, err := r.CreateTag(prefix+version.pre.String(), head.Hash(), nil)
+				tag, err := Bump(r.Repo, prefix, version.increment, version.versionedBranches, false)
 				assert.Nil(t, err)
-				assert.NotNil(t, ref)
-
-				DoCommit(t, r, "bar")
-
-				options := Options{
-					VersionedBranches:      version.versionedBranches,
-					FirstVersionIfNoTag:    noFirstVersion,
-					SkipLatestTagOnTheHead: DontSkipLatestTagOnTheHead,
-					DryRun:                 dryRun,
-				}
-				actualTag, err := Bump(r, prefix, version.increment, options)
-				assert.Nil(t, err)
-				assert.Equal(t, *version.post, *actualTag)
-				_, err = Bump(r, prefix, version.increment, options)
-				assert.NotNil(t, err)
+				assert.Equal(t, *version.post, *tag)
 			})
 		}
 	}

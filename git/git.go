@@ -4,11 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Masterminds/semver"
-	. "github.com/go-git/go-git/v5"
+	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/format/diff"
-	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/agent"
@@ -42,16 +40,16 @@ var (
 func ParseSortDirection(str string) (SortDirection, error) {
 	str = strings.TrimSpace(strings.ToLower(str))
 	switch {
-	case strings.HasPrefix(str, asc):
+	case str == asc:
 		return ASC, nil
-	case strings.HasPrefix(str, desc):
+	case str == desc:
 		return DESC, nil
 	default:
 		return "", fmt.Errorf("%w : %s", ErrInvalidSortDirection, str)
 	}
 }
 
-func TagExists(r *Repository, tag string) (bool, error) {
+func TagExists(r *gogit.Repository, tag string) (bool, error) {
 	tags, err := r.Tags()
 	tag = refPrefix + tag
 	if err != nil {
@@ -67,14 +65,14 @@ func TagExists(r *Repository, tag string) (bool, error) {
 	return found, err
 }
 
-func CreateTag(repo *Repository, version string, prefix string, dryRun bool) error {
+func CreateTag(repo *gogit.Repository, version string, prefix string, dryRun bool) error {
 	tag := prefix + version
 	found, err := TagExists(repo, tag)
 	if err != nil {
 		return err
 	}
 	if found {
-		return fmt.Errorf("%w : %s", ErrTagExists, tag)
+		return fmt.Errorf("%w : %s", gogit.ErrTagExists, tag)
 	}
 	log.Infof("Set tag %s", tag)
 	h, err := repo.Head()
@@ -94,7 +92,7 @@ func CreateTag(repo *Repository, version string, prefix string, dryRun bool) err
 	return nil
 }
 
-func PushTag(r *Repository, socket, version, prefix, remote string, dryRun bool) error {
+func PushTag(r *gogit.Repository, socket, version, prefix, remote string, dryRun bool) error {
 	tag := prefix + version
 
 	conn, err := net.Dial("unix", socket)
@@ -119,7 +117,7 @@ func PushTag(r *Repository, socket, version, prefix, remote string, dryRun bool)
 
 	log.Debugf("Pushing tag: %v", tag)
 	refSpec := config.RefSpec(fmt.Sprintf("refs/tags/%s:refs/tags/%s", tag, tag))
-	po := &PushOptions{
+	po := &gogit.PushOptions{
 		RemoteName: remote,
 		Progress:   os.Stdout,
 		RefSpecs:   []config.RefSpec{refSpec},
@@ -132,7 +130,7 @@ func PushTag(r *Repository, socket, version, prefix, remote string, dryRun bool)
 		err = r.Push(po)
 
 		if err != nil {
-			if errors.Is(err, NoErrAlreadyUpToDate) {
+			if errors.Is(err, gogit.NoErrAlreadyUpToDate) {
 				log.Print("origin remote was up to date, no push done")
 				return nil
 			}
@@ -143,7 +141,7 @@ func PushTag(r *Repository, socket, version, prefix, remote string, dryRun bool)
 	return nil
 }
 
-func ListRefs(repo *Repository, prefix string, direction SortDirection, maxListSize int) ([]SemverRef, error) {
+func ListRefs(repo *gogit.Repository, prefix string, direction SortDirection, maxListSize int) ([]SemverRef, error) {
 	versions, err := refsWithPrefix(repo, prefix)
 	if err != nil {
 		return EmptyRefList, err
@@ -170,39 +168,44 @@ func ListRefs(repo *Repository, prefix string, direction SortDirection, maxListS
 	return versions[0:maxRange()], nil
 }
 
-func LatestRef(repo *Repository, prefix string) (SemverRef, error) {
-	versions, err := refsWithPrefix(repo, prefix)
+func LatestRef(repo *gogit.Repository, prefix string) (SemverRef, error) {
+	versions, err := sortedRefsWithPrefix(repo, prefix)
 	if err != nil {
 		return EmptyRef, err
 	}
-	switch {
-	case len(versions) == 0:
-		return EmptyRef, ErrNoTagFound
-	default:
-		sort.Sort(SemverRefColl(versions))
-		latestVersion := versions[len(versions)-1]
-		log.Debugf("Latest version: %v\n", latestVersion)
-		return latestVersion, nil
-	}
+
+	latestVersion := versions[len(versions)-1]
+	log.Debugf("Latest version: %v\n", latestVersion)
+	return latestVersion, nil
 }
-func PreviousRef(repo *Repository, prefix string) (SemverRef, error) {
-	versions, err := refsWithPrefix(repo, prefix)
+
+func PreviousRef(repo *gogit.Repository, prefix string) (SemverRef, error) {
+	versions, err := sortedRefsWithPrefix(repo, prefix)
 	if err != nil {
 		return EmptyRef, err
 	}
-	switch {
-	case len(versions) == 0:
-		return EmptyRef, ErrNoTagFound
-	case len(versions) == 1:
+	if len(versions) == 1 {
 		return EmptyRef, ErrOneTagFound
-	default:
-		sort.Sort(SemverRefColl(versions))
-		latestVersion := versions[len(versions)-2]
-		log.Debugf("Previous version: %v\n", latestVersion)
-		return latestVersion, nil
 	}
+	latestVersion := versions[len(versions)-2]
+	log.Debugf("Previous version: %v\n", latestVersion)
+	return latestVersion, nil
 }
-func refsWithPrefix(repo *Repository, prefix string) ([]SemverRef, error) {
+
+func sortedRefsWithPrefix(repo *gogit.Repository, prefix string) ([]SemverRef, error) {
+	versions, err := refsWithPrefix(repo, prefix)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(versions) == 0 {
+		return nil, ErrNoTagFound
+	}
+	sort.Sort(SemverRefColl(versions))
+	return versions, nil
+}
+
+func refsWithPrefix(repo *gogit.Repository, prefix string) ([]SemverRef, error) {
 	tagPrefix := refPrefix + prefix
 	re := regexp.MustCompile("^" + tagPrefix + semver.SemVerRegex + "$")
 
@@ -232,7 +235,7 @@ func refsWithPrefix(repo *Repository, prefix string) ([]SemverRef, error) {
 
 type PreRelease func(version *semver.Version) (semver.Version, error)
 
-func CurrentVersion(repo *Repository, prefix string, preRelease PreRelease) (SemverRef, error) {
+func CurrentVersion(repo *gogit.Repository, prefix string, preRelease PreRelease) (SemverRef, error) {
 	latest, err := LatestRef(repo, prefix)
 	if err != nil {
 		return EmptyRef, err
@@ -244,160 +247,18 @@ func CurrentVersion(repo *Repository, prefix string, preRelease PreRelease) (Sem
 	if latest.Ref.Hash() == head.Hash() {
 		return latest, nil
 	}
-	fnVersion, err := preRelease(latest.Version)
+	preReleaseVersion, err := preRelease(latest.Version)
 	if err != nil {
 		return EmptyRef, err
 	}
-	if fnVersion.Prerelease() == "" {
+	if preReleaseVersion.Prerelease() == "" {
 		return EmptyRef, fmt.Errorf("%w : %s", ErrPreReleaseVersion, "preReleaseVersion must have prerelease part")
 	}
-	if !fnVersion.GreaterThan(latest.Version) {
+	if !preReleaseVersion.GreaterThan(latest.Version) {
 		return EmptyRef, fmt.Errorf("%w : %s", ErrPreReleaseVersion, "preReleaseVersion must create a greater version")
 	}
 	return SemverRef{
-		Version: &fnVersion,
+		Version: &preReleaseVersion,
 		Ref:     head,
 	}, nil
-}
-
-const LogSeparator = "--------"
-
-// RelevantChanges prints whether changed files between HEAD and the last release for a given prefix
-func LogPrefix(repo *Repository, prefix string, maxLogIteration int) error {
-	head, err := repo.Head()
-	if err != nil {
-		return err
-	}
-	latestTag, err := LatestRef(repo, prefix)
-	if err != nil {
-		return err
-	}
-	tag := refPrefix + prefix + latestTag.Version.String()
-	latestReleaseHash, err := repo.ResolveRevision(plumbing.Revision(tag))
-	if err != nil {
-		return err
-	}
-	log.Tracef("Latest ref tag %s with commit ref %s", tag, latestReleaseHash.String())
-	iter, err := repo.Log(&LogOptions{From: head.Hash()})
-	if err != nil {
-		return err
-	}
-	previous, err := repo.CommitObject(head.Hash())
-	if err != nil {
-		return err
-	}
-	commitCounter := 0
-	err = iter.ForEach(func(commit *object.Commit) error {
-		commitCounter++
-		if commit.Hash == head.Hash() || *latestReleaseHash == head.Hash() {
-			return nil
-		}
-		commit, err := repo.CommitObject(commit.Hash)
-		if err != nil {
-			return err
-		}
-		patch, err := previous.Patch(commit)
-		if err != nil {
-			return err
-		}
-		fmt.Println(previous.Hash.String()[0:7], "..", commit.Hash.String()[0:7], " ", previous.Message) //nolint
-		for _, filePatch := range patch.FilePatches() {
-			from, to := filePatch.Files()
-			fmt.Println(filePath(from), ",", filePath(to)) //nolint
-		}
-		fmt.Println(LogSeparator) //nolint
-		if commit.Hash == *latestReleaseHash {
-			return ErrEndOfIteration
-		}
-		if commitCounter == maxLogIteration {
-			log.Infof("Reached max log iteration %d", maxLogIteration)
-			return ErrEndOfIteration
-		}
-		previous = commit
-		return nil
-	})
-	if errors.Is(err, ErrEndOfIteration) {
-		return nil
-	}
-	return err
-}
-
-func filePath(file diff.File) string {
-	if file == nil {
-		return "N/A"
-	}
-	return file.Path()
-}
-
-// RelevantChanges checks whether changed files between HEAD and the last release includes a relevant change
-func RelevantChanges(repo *Repository, prefix, change string, maxLogIteration int) error {
-	head, err := repo.Head()
-	if err != nil {
-		return err
-	}
-	latestTag, err := LatestRef(repo, prefix)
-	if err != nil {
-		return err
-	}
-	tag := refPrefix + prefix + latestTag.Version.String()
-	latestReleaseHash, err := repo.ResolveRevision(plumbing.Revision(tag))
-	if err != nil {
-		return err
-	}
-	log.Tracef("Latest ref tag %s with commit ref %s", tag, latestReleaseHash.String())
-	iter, err := repo.Log(&LogOptions{From: head.Hash()})
-	if err != nil {
-		return err
-	}
-	previous, err := repo.CommitObject(head.Hash())
-	if err != nil {
-		return err
-	}
-	commitCounter := 0
-	anyChange := false
-	_ = iter.ForEach(func(commit *object.Commit) error {
-		commitCounter++
-		if commit.Hash == head.Hash() || *latestReleaseHash == head.Hash() {
-			return nil
-		}
-		commit, err := repo.CommitObject(commit.Hash)
-		if err != nil {
-			return err
-		}
-		patch, err := previous.Patch(commit)
-		if err != nil {
-			return err
-		}
-		anyChange = anyChange || patchedFilesContainsTheChange(patch, change)
-		if anyChange {
-			log.Infof("Message: %s\nHelper: git diff --name-only %s..%s", previous.Message,
-				previous.Hash.String()[0:7], commit.Hash.String()[0:7])
-		}
-		if commit.Hash == *latestReleaseHash {
-			return ErrEndOfIteration
-		}
-		if commitCounter == maxLogIteration {
-			log.Infof("Reached max log iteration %d", maxLogIteration)
-			return ErrEndOfIteration
-		}
-		previous = commit
-		return nil
-	})
-	if anyChange {
-		return nil
-	}
-	return ErrNoRelevantChange
-}
-
-func patchedFilesContainsTheChange(patch *object.Patch, change string) bool {
-	for _, filePatch := range patch.FilePatches() {
-		from, to := filePatch.Files()
-		if from != nil && strings.Contains(from.Path(), change) {
-			return true
-		}
-		if to != nil && strings.Contains(to.Path(), change) {
-			return true
-		}
-	}
-	return false
 }

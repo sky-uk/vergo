@@ -36,7 +36,3 @@ func PushCmd() *cobra.Command {
 		},
 	}
 }
-
-func init() {
-	rootCmd.AddCommand(PushCmd())
-}

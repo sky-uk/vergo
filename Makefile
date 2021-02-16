@@ -13,11 +13,8 @@ bin:
 bin/golangci-lint: bin
 	curl -fsL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v${LINTER_VERSION}
 
-gc:
-	git reflog expire --expire=90.days.ago --expire-unreachable=now --all
-	git gc --aggressive --prune=all
-
 command-available:
+	#this empty target is for 'if' syntax to work
 
 pre-check: $(if $(shell which golangci-lint), command-available, bin/golangci-lint)
 	[[ `(gofmt -l .)`x == x ]] || (echo "go fmt failed" && gofmt -l . && exit 1)
@@ -39,6 +36,8 @@ fun-tests: build-test
 	./fun-tests/test.sh
 
 test: unit-tests fun-tests
+test-compile:
+	go test --exec=true ./...
 
 build-test: bin pre-check
 	GORELEASER_CURRENT_VERSION=`git rev-parse --short HEAD` goreleaser build --snapshot --rm-dist

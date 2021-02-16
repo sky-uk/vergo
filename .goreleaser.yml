@@ -31,8 +31,7 @@ release:
 
 uploads:
   # You can have multiple Put instances.
-  -
-    # Unique name of your Put instance. Used to identify the instance.
+  - # Unique name of your Put instance. Used to identify the instance.
     name: nexus
     method: PUT
     mode: archive

@@ -2,7 +2,7 @@
 
 ## Description
 
-Vergo is an executable command line tool that is an alternative to axion gradle plugin 
+Vergo is an executable command line tool that is an alternative to axion gradle plugin
 (https://github.com/allegro/axion-release-plugin.git)
 
 # Simple usages
@@ -34,3 +34,75 @@ Vergo is an executable command line tool that is an alternative to axion gradle 
 * pushes the tag to the remote as separate command
 
   `vergo push --tag-prefix=banana`
+
+# Comparison of axion-release-plugin and vergo
+
+### axion-release-plugin
+
+```
+> git tag
+project-0.1.0
+
+> ./gradlew currentVersion
+0.1.0
+
+> git commit -m "Some commit."
+
+> ./gradlew currentVersion
+0.1.1-SNAPSHOT
+
+> ./gradlew release
+
+> git tag
+project-0.1.0 project-0.1.1
+
+> ./gradlew currentVersion
+0.1.1
+
+> ./gradlew publish
+published project-0.1.1 release version
+
+> ./gradlew markNextVersion -Prelease.version=1.0.0
+
+> ./gradlew currentVersion
+1.0.0-SNAPSHOT
+
+```
+
+### vergo
+
+```
+> git tag
+project-0.1.0
+
+> vergo get current-version -t project
+0.1.0
+
+> vergo get current-version -t project -p
+project-0.1.0
+
+> git commit -m "Some commit."
+
+> vergo get current-version -t project
+0.2.0-SNAPSHOT
+
+> vergo bump patch -t project --log-level=error
+0.1.1
+
+> git tag
+project-0.1.0
+project-0.1.1
+
+> vergo get current-version -t project
+0.1.1
+
+> vergo push -t project
+
+>vergo bump patch -t project --push-tag
+INFO[0000] Set tag project-0.1.2
+0.1.2
+
+```
+
+* There is no replacement for `markNextVersion` at the moment. happy to implement this if it is required by other teams.
+  Nova don't use it.

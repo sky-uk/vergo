@@ -4,27 +4,30 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Masterminds/semver"
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/thoas/go-funk"
 	"go.uber.org/atomic"
 	"math"
+	"sky.uk/vergo/bump"
 	. "sky.uk/vergo/git"
 	. "sky.uk/vergo/internal"
 	"testing"
 )
 
-func init() {
-	log.SetLevel(log.TraceLevel)
-}
-
 //nolint:scopelint,paralleltest
 func TestNoTag(t *testing.T) {
-	prefixes := []string{"", "app", "apple"}
+	prefixes := []string{"", "app", "application"}
 
 	for _, prefix := range prefixes {
 		t.Run(prefix, func(t *testing.T) {
-			r := InMemoryRepositoryWithDefaultCommit(t)
-			_, err := LatestRef(r, prefix)
+			r := NewTestRepo(t)
+			_, err := LatestRef(r.Repo, prefix)
+			assert.Regexp(t, "no tag found", err)
+		})
+
+		t.Run(prefix, func(t *testing.T) {
+			r := NewTestRepo(t)
+			_, err := PreviousRef(r.Repo, prefix)
 			assert.Regexp(t, "no tag found", err)
 		})
 	}
@@ -32,16 +35,15 @@ func TestNoTag(t *testing.T) {
 
 //nolint:scopelint,paralleltest
 func TestTagExists(t *testing.T) {
-	prefixes := []string{"", "app", "apple"}
+	prefixes := []string{"", "app", "application"}
 
 	for _, prefix := range prefixes {
 		t.Run(prefix, func(t *testing.T) {
-			r := InMemoryRepositoryWithDefaultCommit(t)
+			r := NewTestRepo(t)
 
-			aVersion := NewVersionT(t, "0.0.1")
-			err := CreateTag(r, aVersion.String(), prefix, false)
+			err := CreateTag(r.Repo, "0.0.1", prefix, false)
 			assert.Nil(t, err)
-			found, err := TagExists(r, prefix+"0.0.1")
+			found, err := TagExists(r.Repo, prefix+"0.0.1")
 			assert.Nil(t, err)
 			assert.True(t, found)
 		})
@@ -50,18 +52,16 @@ func TestTagExists(t *testing.T) {
 
 //nolint:scopelint,paralleltest
 func TestTagAlreadyExists(t *testing.T) {
-	prefixes := []string{"", "app", "apple"}
+	prefixes := []string{"", "app", "application"}
 
 	for _, prefix := range prefixes {
 		t.Run(prefix, func(t *testing.T) {
-			r := InMemoryRepositoryWithDefaultCommit(t)
+			r := NewTestRepo(t)
 
-			aVersion := NewVersionT(t, "0.0.1")
-			err := CreateTag(r, aVersion.String(), prefix, false)
+			err := CreateTag(r.Repo, "0.0.1", prefix, false)
 			assert.Nil(t, err)
 
-			anotherVersion := NewVersionT(t, "0.0.1")
-			err = CreateTag(r, anotherVersion.String(), prefix, false)
+			err = CreateTag(r.Repo, "0.0.1", prefix, false)
 			assert.Regexp(t, "already exists", err)
 		})
 	}
@@ -69,11 +69,11 @@ func TestTagAlreadyExists(t *testing.T) {
 
 //nolint:funlen,scopelint,paralleltest
 func TestListRefs(t *testing.T) {
-	prefixes := []string{"", "app", "apple"}
-	r := InMemoryRepositoryWithDefaultCommit(t)
+	prefixes := []string{"", "app", "application"}
+	r := NewTestRepo(t)
 
 	t.Run("tag does not exist", func(t *testing.T) {
-		a, err := ListRefs(r, "banana", ASC, math.MaxInt32)
+		a, err := ListRefs(r.Repo, "banana", ASC, math.MaxInt32)
 		assert.Nil(t, err)
 		assert.Equal(t, 0, len(a))
 	})
@@ -86,7 +86,7 @@ func TestListRefs(t *testing.T) {
 				for patch := 1; patch <= maxVersion; patch++ {
 					versionString := fmt.Sprintf("%d.%d.%d", major, minor, patch)
 					aVersion := NewVersionT(t, versionString)
-					err := CreateTag(r, aVersion.String(), prefix, false)
+					err := CreateTag(r.Repo, aVersion.String(), prefix, false)
 					assert.Nil(t, err)
 				}
 			}
@@ -100,7 +100,7 @@ func TestListRefs(t *testing.T) {
 		t.Run(prefix, func(t *testing.T) {
 			t.Run("asc", func(t *testing.T) {
 				t.Run("listAll", func(t *testing.T) {
-					refs, err := ListRefs(r, prefix, ASC, listAll)
+					refs, err := ListRefs(r.Repo, prefix, ASC, listAll)
 					assert.Nil(t, err)
 					assert.Equal(t, maxVersion*maxVersion*maxVersion, len(refs))
 					assert.Equal(t, smallest, refs[0].Version)
@@ -108,7 +108,7 @@ func TestListRefs(t *testing.T) {
 				})
 				t.Run("listSome", func(t *testing.T) {
 					greatest := NewVersionT(t, "2.1.1")
-					refs, err := ListRefs(r, prefix, ASC, listSome)
+					refs, err := ListRefs(r.Repo, prefix, ASC, listSome)
 					assert.Nil(t, err)
 					assert.Equal(t, listSome, len(refs))
 					assert.Equal(t, smallest, refs[0].Version)
@@ -117,7 +117,7 @@ func TestListRefs(t *testing.T) {
 			})
 			t.Run("desc", func(t *testing.T) {
 				t.Run("listAll", func(t *testing.T) {
-					refs, err := ListRefs(r, prefix, DESC, listAll)
+					refs, err := ListRefs(r.Repo, prefix, DESC, listAll)
 					assert.Nil(t, err)
 					assert.Equal(t, maxVersion*maxVersion*maxVersion, len(refs))
 					assert.Equal(t, greatest, refs[0].Version)
@@ -126,7 +126,7 @@ func TestListRefs(t *testing.T) {
 
 				t.Run("listSome", func(t *testing.T) {
 					smallest := NewVersionT(t, "2.3.3")
-					refs, err := ListRefs(r, prefix, DESC, listSome)
+					refs, err := ListRefs(r.Repo, prefix, DESC, listSome)
 					assert.Nil(t, err)
 					assert.Equal(t, listSome, len(refs))
 					assert.Equal(t, greatest, refs[0].Version)
@@ -139,10 +139,7 @@ func TestListRefs(t *testing.T) {
 
 //nolint:paralleltest
 func TestFindLatestTagSameCommitNoPrefix(t *testing.T) {
-	r := InMemoryRepositoryWithDefaultCommit(t)
-	head, err := r.Head()
-	assert.Nil(t, err)
-
+	r := NewTestRepo(t)
 	rangeEnd := 5
 
 	for major := 1; major < rangeEnd; major++ {
@@ -150,15 +147,14 @@ func TestFindLatestTagSameCommitNoPrefix(t *testing.T) {
 			for patch := 1; patch < rangeEnd; patch++ {
 				version := fmt.Sprintf("%d.%d.%d", major, minor, patch)
 				t.Run(version, func(t *testing.T) {
-					ref, err := r.CreateTag(version, head.Hash(), nil)
-					assert.Nil(t, err)
-					assert.Equal(t, ref.Hash(), head.Hash())
+					ref := r.CreateTag(version, r.Head().Hash())
+					assert.Equal(t, ref.Hash(), r.Head().Hash())
 
-					semverRef, err := LatestRef(r, "")
+					semverRef, err := LatestRef(r.Repo, "")
 					assert.Nil(t, err)
 					expectedTag := NewVersionT(t, version)
 					assert.Equal(t, *expectedTag, *semverRef.Version)
-					assert.Equal(t, semverRef.Ref.Hash(), head.Hash())
+					assert.Equal(t, semverRef.Ref.Hash(), r.Head().Hash())
 				})
 			}
 		}
@@ -167,9 +163,7 @@ func TestFindLatestTagSameCommitNoPrefix(t *testing.T) {
 
 //nolint:paralleltest
 func TestFindPreviousTagSameCommitNoPrefix(t *testing.T) {
-	r := InMemoryRepositoryWithDefaultCommit(t)
-	head, err := r.Head()
-	assert.Nil(t, err)
+	r := NewTestRepo(t)
 
 	rangeEnd := 5
 	previous := atomic.NewString("")
@@ -179,16 +173,15 @@ func TestFindPreviousTagSameCommitNoPrefix(t *testing.T) {
 			for patch := 1; patch < rangeEnd; patch++ {
 				version := fmt.Sprintf("%d.%d.%d", major, minor, patch)
 				t.Run(version, func(t *testing.T) {
-					ref, err := r.CreateTag(version, head.Hash(), nil)
-					assert.Nil(t, err)
-					assert.Equal(t, ref.Hash(), head.Hash())
+					ref := r.CreateTag(version, r.Head().Hash())
+					assert.Equal(t, ref.Hash(), r.Head().Hash())
 
 					switch version {
 					case "1.1.1":
-						_, err := PreviousRef(r, "")
+						_, err := PreviousRef(r.Repo, "")
 						assert.Regexp(t, "one tag found", err)
 					default:
-						semverRef, err := PreviousRef(r, "")
+						semverRef, err := PreviousRef(r.Repo, "")
 						assert.Nil(t, err)
 						println(previous)
 						_, err = semver.NewVersion(previous.Load())
@@ -198,7 +191,7 @@ func TestFindPreviousTagSameCommitNoPrefix(t *testing.T) {
 						}
 						expectedTag := NewVersionT(t, previous.Load())
 						assert.Equal(t, *expectedTag, *semverRef.Version)
-						assert.Equal(t, semverRef.Ref.Hash(), head.Hash())
+						assert.Equal(t, semverRef.Ref.Hash(), r.Head().Hash())
 					}
 					previous.Store(version)
 				})
@@ -209,9 +202,7 @@ func TestFindPreviousTagSameCommitNoPrefix(t *testing.T) {
 
 //nolint:scopelint,paralleltest
 func TestFindLatestTagSameCommitWithPrefix(t *testing.T) {
-	r := InMemoryRepositoryWithDefaultCommit(t)
-	head, err := r.Head()
-	assert.Nil(t, err)
+	r := NewTestRepo(t)
 
 	for major := 1; major < 5; major++ {
 		for minor := 1; minor < 5; minor++ {
@@ -221,31 +212,25 @@ func TestFindLatestTagSameCommitWithPrefix(t *testing.T) {
 					tagPrefix1 := "app"
 					version1 := fmt.Sprintf("%d.%d.%d", major, minor, patch)
 					tag1 := fmt.Sprintf("%s%s", tagPrefix1, version1)
-					PrintTags(t, r)
-					ref1, err := r.CreateTag(tag1, head.Hash(), nil)
-					assert.Nil(t, err)
-					PrintTags(t, r)
-					assert.Equal(t, ref1.Hash(), head.Hash())
+					ref1 := r.CreateTag(tag1, r.Head().Hash())
+					assert.Equal(t, ref1.Hash(), r.Head().Hash())
 
 					tagPrefix2 := "apple"
 					version2 := fmt.Sprintf("%d.%d.%d", major*100, minor*100, patch*100)
 					tag2 := fmt.Sprintf("%s%s", tagPrefix2, version2)
-					ref2, err := r.CreateTag(tag2, head.Hash(), nil)
-					assert.Nil(t, err)
-					PrintTags(t, r)
-					assert.Equal(t, ref2.Hash(), head.Hash())
+					ref2 := r.CreateTag(tag2, r.Head().Hash())
+					PrintTags(t, r.Repo)
+					assert.Equal(t, ref2.Hash(), r.Head().Hash())
 
-					semverRef, err := LatestRef(r, tagPrefix1)
+					semverRef, err := LatestRef(r.Repo, tagPrefix1)
 					assert.Nil(t, err)
-					expectedVersion := NewVersionT(t, version1)
-					assert.Equal(t, *expectedVersion, *semverRef.Version)
-					assert.Equal(t, semverRef.Ref.Hash(), head.Hash())
+					assert.Equal(t, *NewVersionT(t, version1), *semverRef.Version)
+					assert.Equal(t, semverRef.Ref.Hash(), r.Head().Hash())
 
-					semverRef2, err := LatestRef(r, tagPrefix2)
+					semverRef2, err := LatestRef(r.Repo, tagPrefix2)
 					assert.Nil(t, err)
-					expectedVersion2 := NewVersionT(t, version2)
-					assert.Equal(t, *expectedVersion2, *semverRef2.Version)
-					assert.Equal(t, ref2.Hash(), head.Hash())
+					assert.Equal(t, *NewVersionT(t, version2), *semverRef2.Version)
+					assert.Equal(t, ref2.Hash(), r.Head().Hash())
 				})
 			}
 		}
@@ -254,17 +239,16 @@ func TestFindLatestTagSameCommitWithPrefix(t *testing.T) {
 
 //nolint:scopelint,paralleltest
 func TestCurrentVersionTagOnTheHead(t *testing.T) {
-	prefixes := []string{"", "app", "apple"}
+	prefixes := []string{"", "app", "application"}
 
 	for _, prefix := range prefixes {
 		t.Run(prefix, func(t *testing.T) {
-			r := InMemoryRepositoryWithDefaultCommit(t)
+			r := NewTestRepo(t)
 
-			aVersion := NewVersionT(t, "0.0.1")
-			err := CreateTag(r, aVersion.String(), prefix, false)
+			err := CreateTag(r.Repo, "0.0.1", prefix, false)
 			assert.Nil(t, err)
 
-			cr, err := CurrentVersion(r, prefix, func(version *semver.Version) (semver.Version, error) {
+			cr, err := CurrentVersion(r.Repo, prefix, func(version *semver.Version) (semver.Version, error) {
 				return semver.Version{}, errors.New("should not have called") //nolint
 			})
 			assert.Nil(t, err)
@@ -275,31 +259,28 @@ func TestCurrentVersionTagOnTheHead(t *testing.T) {
 
 //nolint:scopelint,paralleltest
 func TestCurrentVersionNoTagOnTheHead(t *testing.T) {
-	prefixes := []string{"", "app", "apple"}
+	prefixes := []string{"", "app", "application"}
 
 	for _, prefix := range prefixes {
 		t.Run(prefix, func(t *testing.T) {
-			r := InMemoryRepositoryWithDefaultCommit(t)
+			r := NewTestRepo(t)
 
-			aVersion := NewVersionT(t, "0.0.1")
-			err := CreateTag(r, aVersion.String(), prefix, false)
+			err := CreateTag(r.Repo, "0.0.1", prefix, false)
 			assert.Nil(t, err)
 
-			DoCommit(t, r, "bar")
-			head, err := r.Head()
-			assert.Nil(t, err)
-			cr, err := CurrentVersion(r, prefix, func(version *semver.Version) (semver.Version, error) {
+			r.DoCommit("bar")
+			cr, err := CurrentVersion(r.Repo, prefix, func(version *semver.Version) (semver.Version, error) {
 				return version.IncMinor().SetPrerelease("SNAPSHOT")
 			})
 			assert.Nil(t, err)
-			assert.Equal(t, SemverRef{Ref: head, Version: NewVersionT(t, "0.1.0-SNAPSHOT")}, cr)
+			assert.Equal(t, SemverRef{Ref: r.Head(), Version: NewVersionT(t, "0.1.0-SNAPSHOT")}, cr)
 		})
 	}
 }
 
 //nolint:scopelint,paralleltest
 func TestCurrentVersionNoTagOnTheHeadInvalidPrerelease(t *testing.T) {
-	prefixes := []string{"", "app", "apple"}
+	prefixes := []string{"", "app", "application"}
 
 	preReleases := []struct {
 		fn    PreRelease
@@ -322,14 +303,13 @@ func TestCurrentVersionNoTagOnTheHeadInvalidPrerelease(t *testing.T) {
 	for _, prefix := range prefixes {
 		for _, preRelease := range preReleases {
 			t.Run(prefix, func(t *testing.T) {
-				r := InMemoryRepositoryWithDefaultCommit(t)
+				r := NewTestRepo(t)
 
-				aVersion := NewVersionT(t, "0.0.1")
-				err := CreateTag(r, aVersion.String(), prefix, false)
+				err := CreateTag(r.Repo, "0.0.1", prefix, false)
 				assert.Nil(t, err)
 
-				DoCommit(t, r, "bar")
-				_, err = CurrentVersion(r, prefix, preRelease.fn)
+				r.DoCommit("bar")
+				_, err = CurrentVersion(r.Repo, prefix, preRelease.fn)
 				assert.Regexp(t, preRelease.error, err)
 			})
 		}
@@ -337,25 +317,57 @@ func TestCurrentVersionNoTagOnTheHeadInvalidPrerelease(t *testing.T) {
 }
 
 //nolint:scopelint,paralleltest
-func TestCheckNoRelevantChanges(t *testing.T) {
-	maxLogIteration := 10
-	prefixes := []string{"app", "apple"}
-
+func TestListNoTag(t *testing.T) {
+	maxListSize := 10
+	prefixes := []string{"", "app", "application"}
 	for _, prefix := range prefixes {
 		t.Run(prefix, func(t *testing.T) {
-			r := InMemoryRepositoryWithDefaultCommit(t)
-
-			aVersion := NewVersionT(t, "0.0.1")
-			err := CreateTag(r, aVersion.String(), prefix, false)
+			r := NewTestRepo(t)
+			refs, err := ListRefs(r.Repo, prefix, DESC, maxListSize)
 			assert.Nil(t, err)
+			assert.True(t, len(refs) == 0)
+		})
+	}
+}
 
-			DoCommit(t, r, "bar")
-			err = RelevantChanges(r, prefix, prefix, maxLogIteration)
-			assert.EqualError(t, err, "no relevant change")
-
-			DoCommit(t, r, prefix)
-			err = RelevantChanges(r, prefix, prefix, maxLogIteration)
+//nolint:scopelint,paralleltest
+func TestList(t *testing.T) {
+	var mainBranch = []string{"master"}
+	prefixes := []string{"", "app", "application"}
+	for _, prefix := range prefixes {
+		t.Run(prefix, func(t *testing.T) {
+			r := NewTestRepo(t)
+			_, err := bump.Bump(r.Repo, prefix, "minor", mainBranch, false)
 			assert.Nil(t, err)
+			r.DoCommit("jo")
+			_, err = bump.Bump(r.Repo, prefix, "minor", mainBranch, false)
+			assert.Nil(t, err)
+			getSemver := func(ref SemverRef) string { return ref.Version.String() }
+
+			t.Run("list-all", func(t *testing.T) {
+				{
+					refs, err := ListRefs(r.Repo, prefix, ASC, 2)
+					assert.Nil(t, err)
+					assert.Equal(t, funk.Map(refs, getSemver), []string{"0.1.0", "0.2.0"})
+				}
+				{
+					refs, err := ListRefs(r.Repo, prefix, DESC, 2)
+					assert.Nil(t, err)
+					assert.Equal(t, funk.Map(refs, getSemver), []string{"0.2.0", "0.1.0"})
+				}
+			})
+			t.Run("list-1", func(t *testing.T) {
+				{
+					refs, err := ListRefs(r.Repo, prefix, ASC, 1)
+					assert.Nil(t, err)
+					assert.Equal(t, funk.Map(refs, getSemver), []string{"0.1.0"})
+				}
+				{
+					refs, err := ListRefs(r.Repo, prefix, DESC, 1)
+					assert.Nil(t, err)
+					assert.Equal(t, funk.Map(refs, getSemver), []string{"0.2.0"})
+				}
+			})
 		})
 	}
 }

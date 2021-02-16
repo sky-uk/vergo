@@ -15,8 +15,8 @@ var (
 	builtBy string
 )
 
-func init() {
-	var versionCmd = &cobra.Command{
+func VersionCmd() *cobra.Command {
+	return &cobra.Command{
 		Use:       "version",
 		Short:     "Print the version number of command",
 		Long:      `All software has versions.`,
@@ -33,5 +33,4 @@ func init() {
 			}
 		},
 	}
-	rootCmd.AddCommand(versionCmd)
 }

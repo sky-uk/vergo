@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/Masterminds/semver"
 	"github.com/go-git/go-git/v5"
+	gogit "github.com/go-git/go-git/v5"
 	"github.com/spf13/cobra"
 	"github.com/thoas/go-funk"
 	vergo "sky.uk/vergo/git"
@@ -35,7 +36,10 @@ func OnlyValidArgsAndAliases(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func GetCmd() *cobra.Command {
+type RefFunc func(repo *gogit.Repository, prefix string) (vergo.SemverRef, error)
+type CurrentVersionFunc func(repo *gogit.Repository, prefix string, preRelease vergo.PreRelease) (vergo.SemverRef, error)
+
+func GetCmd(latest, previous RefFunc, current CurrentVersionFunc) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:        "get (latest-release|previous-release|current-version)",
 		Short:      "gets the latest release or current version",
@@ -52,7 +56,7 @@ func GetCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			ref, err := get(rootFlags, modifier, withMetadata)
+			ref, err := get(latest, previous, current, rootFlags, modifier, withMetadata)
 			if err != nil {
 				return err
 			}
@@ -68,7 +72,7 @@ func GetCmd() *cobra.Command {
 	return cmd
 }
 
-func get(rootFlags *RootFlags, modifier string, withMetadata bool) (vergo.SemverRef, error) {
+func get(latest, previous RefFunc, current CurrentVersionFunc, rootFlags *RootFlags, modifier string, withMetadata bool) (vergo.SemverRef, error) {
 	repo, err := git.PlainOpen(rootFlags.repositoryLocation)
 	if err != nil {
 		return vergo.EmptyRef, err
@@ -76,11 +80,11 @@ func get(rootFlags *RootFlags, modifier string, withMetadata bool) (vergo.Semver
 
 	switch modifier {
 	case "lr", "latest-release":
-		return vergo.LatestRef(repo, rootFlags.tagPrefix)
+		return latest(repo, rootFlags.tagPrefix)
 	case "pr", "previous-release":
-		return vergo.PreviousRef(repo, rootFlags.tagPrefix)
+		return previous(repo, rootFlags.tagPrefix)
 	case "cv", "current-version":
-		return vergo.CurrentVersion(repo, rootFlags.tagPrefix, func(version *semver.Version) (semver.Version, error) {
+		return current(repo, rootFlags.tagPrefix, func(version *semver.Version) (semver.Version, error) {
 			pre, err := version.IncMinor().SetPrerelease("SNAPSHOT")
 			if err != nil {
 				return semver.Version{}, err
@@ -97,8 +101,4 @@ func get(rootFlags *RootFlags, modifier string, withMetadata bool) (vergo.Semver
 	default:
 		return vergo.EmptyRef, fmt.Errorf("%w : %s", ErrInvalidArg, modifier)
 	}
-}
-
-func init() {
-	rootCmd.AddCommand(GetCmd())
 }

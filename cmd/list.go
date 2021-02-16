@@ -2,11 +2,18 @@ package cmd
 
 import (
 	"github.com/go-git/go-git/v5"
+	gogit "github.com/go-git/go-git/v5"
 	"github.com/spf13/cobra"
 	vergo "sky.uk/vergo/git"
 )
 
-func ListCmd() *cobra.Command {
+type ListRefs func(
+	repo *gogit.Repository,
+	prefix string,
+	direction vergo.SortDirection,
+	maxListSize int) ([]vergo.SemverRef, error)
+
+func ListCmd(listRefs ListRefs) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "lists the tags",
@@ -32,7 +39,7 @@ func ListCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			refs, err := vergo.ListRefs(repo, rootFlags.tagPrefix, direction, maxListSize)
+			refs, err := listRefs(repo, rootFlags.tagPrefix, direction, maxListSize)
 			if err != nil {
 				return err
 			}
@@ -51,8 +58,4 @@ func ListCmd() *cobra.Command {
 	cmd.Flags().String(sortDirection, "desc", "sort direction [asc,desc]")
 	cmd.Flags().Int(maxListSize, 10, "maximum size of the list returned")
 	return cmd
-}
-
-func init() {
-	rootCmd.AddCommand(ListCmd())
 }
