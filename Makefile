@@ -22,11 +22,11 @@ pre-check: $(if $(shell which golangci-lint), command-available, bin/golangci-li
 	golangci-lint run ./...
 
 release: bin build-test
-	bin/vergo bump minor --repository-location ".." --tag-prefix vergo
-	GORELEASER_CURRENT_TAG=`bin/vergo get latest-release --repository-location ".." --tag-prefix vergo -p` \
-	GORELEASER_PREVIOUS_TAG=`bin/vergo get previous-release --repository-location ".." --tag-prefix vergo -p` \
+	bin/vergo bump minor --tag-prefix vergo
+	GORELEASER_CURRENT_TAG=`bin/vergo get latest-release --tag-prefix vergo -p` \
+	GORELEASER_PREVIOUS_TAG=`bin/vergo get previous-release --tag-prefix vergo -p` \
 	goreleaser release --skip-validate --rm-dist
-	bin/vergo push --repository-location ".." --tag-prefix vergo
+	bin/vergo push --tag-prefix vergo
 
 unit-tests: pre-check
 	go clean -testcache
@@ -40,7 +40,7 @@ test-compile:
 	go test --exec=true ./...
 
 build-test: bin pre-check
-	GORELEASER_CURRENT_VERSION=`git rev-parse --short HEAD` goreleaser build --snapshot --rm-dist
+	GORELEASER_CURRENT_TAG=`git rev-parse --short HEAD` goreleaser build --snapshot --rm-dist
 	@dist/vergo_`uname | tr A-Z a-z`_amd64/vergo version
 	@cp dist/vergo_`uname | tr A-Z a-z`_amd64/vergo bin/vergo
 

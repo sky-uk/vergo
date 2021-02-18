@@ -40,7 +40,7 @@ func BumpCmd(bump BumpFunc, pushTag PushTagFunc) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			repo, err := git.PlainOpen(rootFlags.repositoryLocation)
+			repo, err := git.PlainOpenWithOptions(rootFlags.repositoryLocation, &git.PlainOpenOptions{DetectDotGit: true})
 			if err != nil {
 				return err
 			}

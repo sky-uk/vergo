@@ -18,13 +18,13 @@ builds:
     ldflags:
       - -s
       - -w
-      - -X sky.uk/vergo/cmd.version={{.Version}}
+      - -X sky.uk/vergo/cmd.version={{.Env.GORELEASER_CURRENT_TAG}}
       - -X sky.uk/vergo/cmd.commit={{.Commit}}
       - -X sky.uk/vergo/cmd.date={{.Date}}
       - -X sky.uk/vergo/cmd.builtBy=goreleaser
 
 snapshot:
-  name_template: "{{ .Env.GORELEASER_CURRENT_VERSION }}"
+  name_template: "{{ .Env.GORELEASER_CURRENT_TAG }}"
 
 release:
   disable: true
