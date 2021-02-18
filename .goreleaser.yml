@@ -29,6 +29,10 @@ snapshot:
 release:
   disable: true
 
+source:
+  name_template: '{{ .ProjectName }}-{{ .Tag }}'
+  format: tar.gz
+
 uploads:
   # You can have multiple Put instances.
   - # Unique name of your Put instance. Used to identify the instance.
