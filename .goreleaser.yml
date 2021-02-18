@@ -29,6 +29,12 @@ snapshot:
 release:
   disable: true
 
+archives:
+  - id: default
+    builds:
+      - vergo
+    name_template: '{{ .ProjectName }}_{{ .Tag }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}{{ if .Mips }}_{{ .Mips }}{{ end }}'
+
 source:
   name_template: '{{ .ProjectName }}-{{ .Tag }}'
   format: tar.gz
