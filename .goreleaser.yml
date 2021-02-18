@@ -35,4 +35,4 @@ uploads:
     name: nexus
     method: PUT
     mode: archive
-    target: '{{ .Env.UPLOAD_TARGET }}/{{ .ProjectName }}/{{ .Version }}/'
+    target: '{{ .Env.UPLOAD_TARGET }}/{{ .ProjectName }}/{{ .Tag }}/'
