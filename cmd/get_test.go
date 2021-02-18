@@ -2,6 +2,7 @@ package cmd_test
 
 import (
 	"github.com/stretchr/testify/assert"
+	"os"
 	. "sky.uk/vergo/internal"
 	"testing"
 )
@@ -32,4 +33,15 @@ func TestGetAllValidArgsAndAliasesWithPrefix(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, "some-prefix-0.1.0", readBuffer(t, buffer))
 	}
+}
+
+func TestGetDetectDotGit(t *testing.T) {
+	_, tempDir := PersistentRepository(t)
+	tempDirWithInnerFolders := tempDir + "/level1/level2/level3"
+	assert.Nil(t, os.MkdirAll(tempDirWithInnerFolders, os.ModePerm))
+	cmd, buffer := makeGet(t)
+	cmd.SetArgs([]string{"get", "lr", "--repository-location", tempDirWithInnerFolders, "-t", "some-prefix", "--log-level", "error"})
+	err := cmd.Execute()
+	assert.Nil(t, err)
+	assert.Equal(t, "0.1.0", readBuffer(t, buffer))
 }

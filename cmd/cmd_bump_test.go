@@ -2,6 +2,7 @@ package cmd_test
 
 import (
 	"github.com/stretchr/testify/assert"
+	"os"
 	. "sky.uk/vergo/internal"
 	"testing"
 )
@@ -51,4 +52,15 @@ func TestBumpFailWhenPushTagFails(t *testing.T) {
 	err := cmd.Execute()
 	assert.NotNil(t, err)
 	assert.Equal(t, `push tag failed`, err.Error())
+}
+
+func TestBumpDetectDotGit(t *testing.T) {
+	_, tempDir := PersistentRepository(t)
+	tempDirWithInnerFolders := tempDir + "/level1/level2/level3"
+	assert.Nil(t, os.MkdirAll(tempDirWithInnerFolders, os.ModePerm))
+	cmd, buffer := makeBump(t)
+	cmd.SetArgs([]string{"bump", "minor", "--repository-location", tempDirWithInnerFolders})
+	err := cmd.Execute()
+	assert.Nil(t, err)
+	assert.Equal(t, "0.1.0", readBuffer(t, buffer))
 }

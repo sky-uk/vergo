@@ -73,7 +73,7 @@ func GetCmd(latest, previous RefFunc, current CurrentVersionFunc) *cobra.Command
 }
 
 func get(latest, previous RefFunc, current CurrentVersionFunc, rootFlags *RootFlags, modifier string, withMetadata bool) (vergo.SemverRef, error) {
-	repo, err := git.PlainOpen(rootFlags.repositoryLocation)
+	repo, err := git.PlainOpenWithOptions(rootFlags.repositoryLocation, &git.PlainOpenOptions{DetectDotGit: true})
 	if err != nil {
 		return vergo.EmptyRef, err
 	}
