@@ -10,7 +10,7 @@ import (
 	"io/ioutil"
 	. "sky.uk/vergo/cmd"
 	vergo "sky.uk/vergo/git"
-	. "sky.uk/vergo/internal"
+	. "sky.uk/vergo/internal-test"
 	"testing"
 )
 

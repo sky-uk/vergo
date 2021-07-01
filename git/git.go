@@ -7,6 +7,7 @@ import (
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/agent"
@@ -33,8 +34,6 @@ var (
 	ErrOneTagFound          = errors.New("one tag found")
 	ErrInvalidSortDirection = errors.New("invalid sort direction")
 	ErrPreReleaseVersion    = errors.New("invalid preReleaseVersion")
-	ErrEndOfIteration       = errors.New("end of iteration")
-	ErrNoRelevantChange     = errors.New("no relevant change")
 )
 
 func ParseSortDirection(str string) (SortDirection, error) {
@@ -65,7 +64,8 @@ func TagExists(r *gogit.Repository, tag string) (bool, error) {
 	return found, err
 }
 
-func CreateTag(repo *gogit.Repository, version string, prefix string, dryRun bool) error {
+func CreateTagWithMessage(repo *gogit.Repository, version, prefix, message string,
+	tagger *object.Signature, dryRun bool) error {
 	tag := prefix + version
 	found, err := TagExists(repo, tag)
 	if err != nil {
@@ -82,14 +82,24 @@ func CreateTag(repo *gogit.Repository, version string, prefix string, dryRun boo
 	if dryRun {
 		log.Infof("Dry run: create tag %v", tag)
 	} else {
-		_, err = repo.CreateTag(tag, h.Hash(), nil)
-
+		if strings.TrimSpace(message) == "" {
+			_, err = repo.CreateTag(tag, h.Hash(), nil)
+		} else {
+			_, err = repo.CreateTag(tag, h.Hash(), &gogit.CreateTagOptions{
+				Tagger:  tagger,
+				Message: message,
+			})
+		}
 		if err != nil {
 			return fmt.Errorf("%w : %s", err, "create tag error")
 		}
 	}
 
 	return nil
+}
+
+func CreateTag(repo *gogit.Repository, version, prefix string, dryRun bool) error {
+	return CreateTagWithMessage(repo, version, prefix, "", nil, dryRun)
 }
 
 func PushTag(r *gogit.Repository, socket, version, prefix, remote string, dryRun bool) error {
@@ -169,30 +179,30 @@ func ListRefs(repo *gogit.Repository, prefix string, direction SortDirection, ma
 }
 
 func LatestRef(repo *gogit.Repository, prefix string) (SemverRef, error) {
-	versions, err := sortedRefsWithPrefix(repo, prefix)
+	versions, err := reversedRefsWithPrefix(repo, prefix)
 	if err != nil {
 		return EmptyRef, err
 	}
 
-	latestVersion := versions[len(versions)-1]
+	latestVersion := versions[0]
 	log.Debugf("Latest version: %v\n", latestVersion)
 	return latestVersion, nil
 }
 
 func PreviousRef(repo *gogit.Repository, prefix string) (SemverRef, error) {
-	versions, err := sortedRefsWithPrefix(repo, prefix)
+	versions, err := reversedRefsWithPrefix(repo, prefix)
 	if err != nil {
 		return EmptyRef, err
 	}
 	if len(versions) == 1 {
 		return EmptyRef, ErrOneTagFound
 	}
-	latestVersion := versions[len(versions)-2]
+	latestVersion := versions[1]
 	log.Debugf("Previous version: %v\n", latestVersion)
 	return latestVersion, nil
 }
 
-func sortedRefsWithPrefix(repo *gogit.Repository, prefix string) ([]SemverRef, error) {
+func reversedRefsWithPrefix(repo *gogit.Repository, prefix string) ([]SemverRef, error) {
 	versions, err := refsWithPrefix(repo, prefix)
 	if err != nil {
 		return nil, err
@@ -201,7 +211,7 @@ func sortedRefsWithPrefix(repo *gogit.Repository, prefix string) ([]SemverRef, e
 	if len(versions) == 0 {
 		return nil, ErrNoTagFound
 	}
-	sort.Sort(SemverRefColl(versions))
+	sort.Sort(sort.Reverse(SemverRefColl(versions)))
 	return versions, nil
 }
 
@@ -236,16 +246,37 @@ func refsWithPrefix(repo *gogit.Repository, prefix string) ([]SemverRef, error) 
 type PreRelease func(version *semver.Version) (semver.Version, error)
 
 func CurrentVersion(repo *gogit.Repository, prefix string, preRelease PreRelease) (SemverRef, error) {
-	latest, err := LatestRef(repo, prefix)
-	if err != nil {
-		return EmptyRef, err
-	}
 	head, err := repo.Head()
 	if err != nil {
 		return EmptyRef, err
 	}
-	if latest.Ref.Hash() == head.Hash() {
-		return latest, nil
+	sortedTagRefs, err := reversedRefsWithPrefix(repo, prefix)
+	if err != nil {
+		return EmptyRef, err
+	}
+	for _, tagRef := range sortedTagRefs {
+		obj, err := repo.TagObject(tagRef.Ref.Hash())
+		switch err {
+		case nil:
+			// Tag object present
+			if obj.Target == head.Hash() {
+				return SemverRef{
+					Version: tagRef.Version,
+					Ref:     head,
+				}, nil
+			}
+		case plumbing.ErrObjectNotFound:
+			// Not a tag object
+			if tagRef.Ref.Hash() == head.Hash() {
+				return tagRef, nil
+			}
+		default:
+			return EmptyRef, err
+		}
+	}
+	latest, err := LatestRef(repo, prefix)
+	if err != nil {
+		return EmptyRef, err
 	}
 	preReleaseVersion, err := preRelease(latest.Version)
 	if err != nil {

@@ -4,14 +4,17 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Masterminds/semver"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/stretchr/testify/assert"
 	"github.com/thoas/go-funk"
 	"go.uber.org/atomic"
 	"math"
 	"sky.uk/vergo/bump"
 	. "sky.uk/vergo/git"
-	. "sky.uk/vergo/internal"
+	. "sky.uk/vergo/internal-test"
 	"testing"
+	"time"
 )
 
 //nolint:scopelint,paralleltest
@@ -237,6 +240,10 @@ func TestFindLatestTagSameCommitWithPrefix(t *testing.T) {
 	}
 }
 
+var dontNeedPreRelease = func(version *semver.Version) (semver.Version, error) {
+	return semver.Version{}, errors.New("should not have called") //nolint
+}
+
 //nolint:scopelint,paralleltest
 func TestCurrentVersionTagOnTheHead(t *testing.T) {
 	prefixes := []string{"", "app", "application"}
@@ -248,9 +255,7 @@ func TestCurrentVersionTagOnTheHead(t *testing.T) {
 			err := CreateTag(r.Repo, "0.0.1", prefix, false)
 			assert.Nil(t, err)
 
-			cr, err := CurrentVersion(r.Repo, prefix, func(version *semver.Version) (semver.Version, error) {
-				return semver.Version{}, errors.New("should not have called") //nolint
-			})
+			cr, err := CurrentVersion(r.Repo, prefix, dontNeedPreRelease)
 			assert.Nil(t, err)
 			assert.Equal(t, NewVersionT(t, "0.0.1").String(), cr.Version.String())
 		})
@@ -274,6 +279,83 @@ func TestCurrentVersionNoTagOnTheHead(t *testing.T) {
 			})
 			assert.Nil(t, err)
 			assert.Equal(t, SemverRef{Ref: r.Head(), Version: NewVersionT(t, "0.1.0-SNAPSHOT")}, cr)
+		})
+	}
+}
+
+//nolint:scopelint,paralleltest
+func TestCurrentVersionWithCheckoutOlderRelease(t *testing.T) {
+	prefixes := []string{"", "app", "application"}
+
+	for _, prefix := range prefixes {
+		t.Run(prefix, func(t *testing.T) {
+			r := NewTestRepo(t)
+			err := CreateTag(r.Repo, "0.0.1", prefix, false)
+			assert.Nil(t, err)
+			checkoutHash := r.Head().Hash()
+
+			r.DoCommit("bar")
+			err = CreateTag(r.Repo, "0.0.2", prefix, false)
+			assert.Nil(t, err)
+
+			{
+				cr, err := CurrentVersion(r.Repo, prefix, dontNeedPreRelease)
+				assert.Nil(t, err)
+				assert.Equal(t, NewVersionT(t, "0.0.2"), cr.Version)
+			}
+
+			wt, err := r.Repo.Worktree()
+			assert.Nil(t, err)
+			err = wt.Checkout(&git.CheckoutOptions{Hash: checkoutHash})
+			assert.Nil(t, err)
+
+			{
+				cr, err := CurrentVersion(r.Repo, prefix, dontNeedPreRelease)
+				assert.Nil(t, err)
+				assert.Equal(t, checkoutHash, cr.Ref.Hash())
+				assert.Equal(t, NewVersionT(t, "0.0.1"), cr.Version)
+			}
+		})
+	}
+}
+
+//nolint:scopelint,paralleltest
+func TestCurrentVersionWithAnnotatedTags(t *testing.T) {
+	prefixes := []string{"", "app", "application"}
+
+	for _, prefix := range prefixes {
+		t.Run(prefix, func(t *testing.T) {
+			r := NewTestRepo(t)
+			tagger := &object.Signature{
+				Name:  "test",
+				Email: "test@test.com",
+				When:  time.Now(),
+			}
+			err := CreateTagWithMessage(r.Repo, "0.0.1", prefix, "test message", tagger, false)
+			assert.Nil(t, err)
+			checkoutHash := r.Head().Hash()
+
+			r.DoCommit("bar")
+			err = CreateTagWithMessage(r.Repo, "0.0.2", prefix, "test message", tagger, false)
+			assert.Nil(t, err)
+
+			{
+				cr, err := CurrentVersion(r.Repo, prefix, dontNeedPreRelease)
+				assert.Nil(t, err)
+				assert.Equal(t, NewVersionT(t, "0.0.2"), cr.Version)
+			}
+
+			wt, err := r.Repo.Worktree()
+			assert.Nil(t, err)
+			err = wt.Checkout(&git.CheckoutOptions{Hash: checkoutHash})
+			assert.Nil(t, err)
+
+			{
+				cr, err := CurrentVersion(r.Repo, prefix, dontNeedPreRelease)
+				assert.Nil(t, err)
+				assert.Equal(t, checkoutHash, cr.Ref.Hash())
+				assert.Equal(t, NewVersionT(t, "0.0.1"), cr.Version)
+			}
 		})
 	}
 }

@@ -3,7 +3,7 @@ package cmd_test
 import (
 	"github.com/stretchr/testify/assert"
 	"os"
-	. "sky.uk/vergo/internal"
+	. "sky.uk/vergo/internal-test"
 	"testing"
 )
 

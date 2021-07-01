@@ -8,7 +8,7 @@ import (
 	"github.com/go-git/go-git/v5/storage/memory"
 	"github.com/stretchr/testify/assert"
 	. "sky.uk/vergo/bump"
-	. "sky.uk/vergo/internal"
+	. "sky.uk/vergo/internal-test"
 	"testing"
 )
 
