@@ -54,6 +54,28 @@ func TestTagExists(t *testing.T) {
 }
 
 //nolint:scopelint,paralleltest
+func TestAnnotatedTagExists(t *testing.T) {
+	prefixes := []string{"", "app", "application"}
+
+	for _, prefix := range prefixes {
+		t.Run(prefix, func(t *testing.T) {
+			r := NewTestRepo(t)
+			tagger := &object.Signature{
+				Name:  "test",
+				Email: "test@test.com",
+				When:  time.Now(),
+			}
+
+			err := CreateTagWithMessage(r.Repo, "0.0.1", prefix, "test message", tagger, false)
+			assert.Nil(t, err)
+			found, err := TagExists(r.Repo, prefix+"0.0.1")
+			assert.Nil(t, err)
+			assert.True(t, found)
+		})
+	}
+}
+
+//nolint:scopelint,paralleltest
 func TestTagAlreadyExists(t *testing.T) {
 	prefixes := []string{"", "app", "application"}
 

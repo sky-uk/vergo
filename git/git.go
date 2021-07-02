@@ -255,22 +255,19 @@ func CurrentVersion(repo *gogit.Repository, prefix string, preRelease PreRelease
 		return EmptyRef, err
 	}
 	for _, tagRef := range sortedTagRefs {
-		obj, err := repo.TagObject(tagRef.Ref.Hash())
-		switch err {
-		case nil:
+		switch tagObject, err := repo.TagObject(tagRef.Ref.Hash()); {
+		case err == nil && tagObject.Target == head.Hash() && tagObject.TargetType == plumbing.CommitObject:
 			// Tag object present
-			if obj.Target == head.Hash() {
-				return SemverRef{
-					Version: tagRef.Version,
-					Ref:     head,
-				}, nil
-			}
-		case plumbing.ErrObjectNotFound:
+			return SemverRef{
+				Version: tagRef.Version,
+				Ref:     head,
+			}, nil
+		case err == plumbing.ErrObjectNotFound && tagRef.Ref.Hash() == head.Hash():
 			// Not a tag object
-			if tagRef.Ref.Hash() == head.Hash() {
-				return tagRef, nil
-			}
-		default:
+			return tagRef, nil
+		case err == nil:
+			break
+		case err != plumbing.ErrObjectNotFound:
 			return EmptyRef, err
 		}
 	}

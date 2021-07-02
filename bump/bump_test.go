@@ -5,11 +5,14 @@ import (
 	"github.com/go-git/go-billy/v5/memfs"
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/storage/memory"
 	"github.com/stretchr/testify/assert"
 	. "sky.uk/vergo/bump"
+	. "sky.uk/vergo/git"
 	. "sky.uk/vergo/internal-test"
 	"testing"
+	"time"
 )
 
 const firstVersion = "0.1.0"
@@ -139,6 +142,44 @@ func TestBumpShouldWorkWhenHeadlessCheckout(t *testing.T) {
 				assert.Nil(t, err)
 			})
 		}
+	}
+}
+
+//nolint:scopelint,paralleltest
+func TestBumpWithAnnotatedTags(t *testing.T) {
+	prefixes := []string{"", "app", "application"}
+	for _, prefix := range prefixes {
+		t.Run(prefix, func(t *testing.T) {
+			r := NewTestRepo(t)
+			tagger := &object.Signature{
+				Name:  "test",
+				Email: "test@test.com",
+				When:  time.Now(),
+			}
+			err := CreateTagWithMessage(r.Repo, "0.0.1", prefix, "test message", tagger, false)
+			assert.Nil(t, err)
+
+			{
+				tag, err := Bump(r.Repo, prefix, "patch", mainBranch, false)
+				assert.Nil(t, err)
+				assert.Equal(t, NewVersionT(t, "0.0.1"), tag)
+			}
+
+			r.DoCommit("foo")
+			assert.Nil(t, CreateTag(r.Repo, "1.0.0", prefix, false))
+			{
+				tag, err := Bump(r.Repo, prefix, "patch", mainBranch, false)
+				assert.Nil(t, err)
+				assert.Equal(t, NewVersionT(t, "1.0.0"), tag)
+			}
+
+			r.DoCommit("bar")
+			{
+				tag, err := Bump(r.Repo, prefix, "patch", mainBranch, false)
+				assert.Nil(t, err)
+				assert.Equal(t, NewVersionT(t, "1.0.1"), tag)
+			}
+		})
 	}
 }
 

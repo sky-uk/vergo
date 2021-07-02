@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/Masterminds/semver"
 	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"sky.uk/vergo/git"
@@ -43,8 +44,7 @@ func Bump(repo *gogit.Repository, tagPrefix, increment string, versionedBranches
 		return nil, fmt.Errorf("%w : %s", ErrBump, "command disabled for branches")
 	}
 	latest, err := git.LatestRef(repo, tagPrefix)
-	switch {
-	case errors.Is(err, git.ErrNoTagFound):
+	if errors.Is(err, git.ErrNoTagFound) {
 		newVersion, err := semver.NewVersion(firstVersion)
 		if err != nil {
 			return nil, err
@@ -54,16 +54,25 @@ func Bump(repo *gogit.Repository, tagPrefix, increment string, versionedBranches
 			return nil, err
 		}
 		return newVersion, nil
-	case latest.Ref.Hash() == head.Hash():
-		return latest.Version, nil
-	default:
-		newVersion, err := NextVersion(increment, *latest.Version)
-		if err != nil {
-			return nil, err
-		}
-		if err := git.CreateTag(repo, newVersion.String(), tagPrefix, dryRun); err != nil {
-			return nil, err
-		}
-		return &newVersion, nil
 	}
+	switch tagObject, err := repo.TagObject(latest.Ref.Hash()); {
+	case err == nil && tagObject.Target == head.Hash() && tagObject.TargetType == plumbing.CommitObject:
+		// Tag object present
+		return latest.Version, nil
+	case err == plumbing.ErrObjectNotFound && latest.Ref.Hash() == head.Hash():
+		// Not a tag object
+		return latest.Version, nil
+	case err == nil:
+		break
+	case err != plumbing.ErrObjectNotFound:
+		return nil, err
+	}
+	newVersion, err := NextVersion(increment, *latest.Version)
+	if err != nil {
+		return nil, err
+	}
+	if err := git.CreateTag(repo, newVersion.String(), tagPrefix, dryRun); err != nil {
+		return nil, err
+	}
+	return &newVersion, nil
 }
