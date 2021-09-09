@@ -37,6 +37,20 @@ func TestBumpShouldWorkWithIncrementsAndPrefix(t *testing.T) {
 	}
 }
 
+func TestBumpShouldWorkWithIncrementsAndSlashPrefix(t *testing.T) {
+	increments := []string{"patch", "minor", "major"}
+	for _, increment := range increments {
+		t.Run(increment, func(t *testing.T) {
+			_, tempDir := PersistentRepository(t)
+			cmd, buffer := makeBump(t)
+			cmd.SetArgs([]string{"bump", increment, "--repository-location", tempDir, "-t", "prefix/", "-p"})
+			err := cmd.Execute()
+			assert.Nil(t, err)
+			assert.Equal(t, "prefix/0.1.0", readBuffer(t, buffer))
+		})
+	}
+}
+
 func TestBumpFailWhenCalledWithUnknownIncrement(t *testing.T) {
 	cmd, _ := makeBump(t)
 	cmd.SetArgs([]string{"bump", "unknown-increment", "--repository-location", "some-location", "-t", "some-prefix"})

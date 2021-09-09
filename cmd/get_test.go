@@ -35,6 +35,20 @@ func TestGetAllValidArgsAndAliasesWithPrefix(t *testing.T) {
 	}
 }
 
+func TestGetAllValidArgsAndAliasesWithSlashPrefix(t *testing.T) {
+	_, tempDir := PersistentRepository(t)
+
+	args := []string{"latest-release", "previous-release", "current-version"}
+	aliases := []string{"lr", "cv", "pr"}
+	for _, arg := range append(args, aliases...) {
+		cmd, buffer := makeGet(t)
+		cmd.SetArgs([]string{"get", arg, "--repository-location", tempDir, "-t", "prefix/", "--log-level", "error", "-p"})
+		err := cmd.Execute()
+		assert.Nil(t, err)
+		assert.Equal(t, "prefix/0.1.0", readBuffer(t, buffer))
+	}
+}
+
 func TestGetDetectDotGit(t *testing.T) {
 	_, tempDir := PersistentRepository(t)
 	tempDirWithInnerFolders := tempDir + "/level1/level2/level3"

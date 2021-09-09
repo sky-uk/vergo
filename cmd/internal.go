@@ -18,6 +18,8 @@ func sanitiseTagPrefix(tagPrefix string) string {
 		return "v"
 	case strings.HasSuffix(tagPrefix, "-"):
 		return tagPrefix
+	case strings.HasSuffix(tagPrefix, "/"):
+		return tagPrefix
 	default:
 		return tagPrefix + "-"
 	}

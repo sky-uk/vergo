@@ -35,6 +35,11 @@ Vergo is an executable command line tool that is an alternative to axion gradle 
 
   `vergo push --tag-prefix=banana`
 
+* supports the creation of tags with / seperated postfix will bump tags with the structure `orange/<major>.<minor>.<patch>`
+
+`vergo bump major --tag-prefix=orange/`
+
+
 # Comparison of axion-release-plugin and vergo
 
 ### axion-release-plugin
