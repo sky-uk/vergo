@@ -2,7 +2,7 @@
 
 ## [0.16.0] - 09-09-2021
 
-Recognise tags with a slash prefix in order to support go submodule tags
+Recognise tags with a slash prefix in order to support go multi-module projects
 
 ## [0.15.0] - 02-07-2021
 
