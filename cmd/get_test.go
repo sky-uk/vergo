@@ -42,10 +42,10 @@ func TestGetAllValidArgsAndAliasesWithSlashPrefix(t *testing.T) {
 	aliases := []string{"lr", "cv", "pr"}
 	for _, arg := range append(args, aliases...) {
 		cmd, buffer := makeGet(t)
-		cmd.SetArgs([]string{"get", arg, "--repository-location", tempDir, "-t", "prefix/", "--log-level", "error", "-p"})
+		cmd.SetArgs([]string{"get", arg, "--repository-location", tempDir, "-t", "prefix/v", "--log-level", "error", "-p"})
 		err := cmd.Execute()
 		assert.Nil(t, err)
-		assert.Equal(t, "prefix/0.1.0", readBuffer(t, buffer))
+		assert.Equal(t, "prefix/v0.1.0", readBuffer(t, buffer))
 	}
 }
 

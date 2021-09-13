@@ -229,7 +229,7 @@ func TestFindPreviousTagSameCommitNoPrefix(t *testing.T) {
 func TestFindLatestTagSameCommitWithPrefix(t *testing.T) {
 	r := NewTestRepo(t)
 
-	postfixes := []string{"", "-", "/"}
+	postfixes := []string{"", "-", "/v"}
 
 	for _, postfix := range postfixes {
 		for major := 1; major < 5; major++ {

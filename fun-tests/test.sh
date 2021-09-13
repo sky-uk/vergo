@@ -22,7 +22,7 @@ setUp() {
   git clone git@github.com:sky-uk/vergo-test-repo.git /tmp/vergo-test-repo
   git clone /tmp/vergo-test-repo /tmp/vergo-test-repo-clone
   cd /tmp/vergo-test-repo-clone
-  [[ "$(git tag -l apple-0.2.0 app-0.1.1 banana-2.0.0 orange/3.0.0)" == "" ]]
+  [[ "$(git tag -l apple-0.2.0 app-0.1.1 banana-2.0.0 orange/v3.0.0)" == "" ]]
 }
 
 readonly head="$(git rev-parse HEAD)"
@@ -34,31 +34,31 @@ setUp
 [[ "$(vergo get lr --tag-prefix=apple)" == "0.1.1" ]]
 [[ "$(vergo get lr --tag-prefix=app)" == "0.1.0" ]]
 [[ "$(vergo get lr --tag-prefix=banana)" == "1.1.2" ]]
-[[ "$(vergo get lr --tag-prefix=orange/)" == "2.3.0" ]]
+[[ "$(vergo get lr --tag-prefix=orange/v)" == "2.3.0" ]]
 
 [[ "$(vergo get lr --tag-prefix=apple --log-level=trace 2>&1)" == *'level=debug msg="Latest version: {0.1.1 b26954d9cb20e58b5d6d9b9c1930ae998e8b6e3c refs/tags/apple-0.1.1}\n"
 0.1.1' ]]
 [[ "$(vergo get lr --tag-prefix=app --log-level=trace 2>&1)" == *'level=debug msg="Latest version: {0.1.0 b26954d9cb20e58b5d6d9b9c1930ae998e8b6e3c refs/tags/app-0.1.0}\n"
 0.1.0' ]]
-[[ "$(vergo get lr --tag-prefix=orange/ --log-level=trace 2>&1)" == *'level=debug msg="Latest version: {2.3.0 b26954d9cb20e58b5d6d9b9c1930ae998e8b6e3c refs/tags/orange/2.3.0}\n"
+[[ "$(vergo get lr --tag-prefix=orange/v --log-level=trace 2>&1)" == *'level=debug msg="Latest version: {2.3.0 b26954d9cb20e58b5d6d9b9c1930ae998e8b6e3c refs/tags/orange/v2.3.0}\n"
 2.3.0' ]]
 
 #test get current-version
 [[ "$(vergo get cv --tag-prefix=apple)" == "0.2.0-SNAPSHOT" ]]
 [[ "$(vergo get cv --tag-prefix=app)" == "0.2.0-SNAPSHOT" ]]
-[[ "$(vergo get cv --tag-prefix=orange/)" == "2.4.0-SNAPSHOT" ]]
+[[ "$(vergo get cv --tag-prefix=orange/v)" == "2.4.0-SNAPSHOT" ]]
 
 #test get current-version with prefix included in the output
 [[ "$(vergo get cv --tag-prefix=apple -p)" == "apple-0.2.0-SNAPSHOT" ]]
 [[ "$(vergo get cv --tag-prefix=app -p)" == "app-0.2.0-SNAPSHOT" ]]
-[[ "$(vergo get cv --tag-prefix=orange/ -p)" == "orange/2.4.0-SNAPSHOT" ]]
+[[ "$(vergo get cv --tag-prefix=orange/v -p)" == "orange/v2.4.0-SNAPSHOT" ]]
 
 #test get current-version for SNAPSHOT
 [[ "$(vergo get cv --tag-prefix=apple --log-level=trace 2>&1)" == *'level=debug msg="Latest version: {0.1.1 b26954d9cb20e58b5d6d9b9c1930ae998e8b6e3c refs/tags/apple-0.1.1}\n"
 0.2.0-SNAPSHOT' ]]
 [[ "$(vergo get cv --tag-prefix=app --log-level=trace 2>&1)" == *'level=debug msg="Latest version: {0.1.0 b26954d9cb20e58b5d6d9b9c1930ae998e8b6e3c refs/tags/app-0.1.0}\n"
 0.2.0-SNAPSHOT' ]]
-[[ "$(vergo get cv --tag-prefix=orange/ --log-level=trace 2>&1)" == *'level=debug msg="Latest version: {2.3.0 b26954d9cb20e58b5d6d9b9c1930ae998e8b6e3c refs/tags/orange/2.3.0}\n"
+[[ "$(vergo get cv --tag-prefix=orange/v --log-level=trace 2>&1)" == *'level=debug msg="Latest version: {2.3.0 b26954d9cb20e58b5d6d9b9c1930ae998e8b6e3c refs/tags/orange/v2.3.0}\n"
 2.4.0-SNAPSHOT' ]]
 
 #test bump minor first tag, melon prefix dees not exist in repo
@@ -89,12 +89,12 @@ readonly tagPrefixBananaVersion_2_0_0="$(vergo bump major --push-tag --tag-prefi
 [[ "$(vergo get cv --tag-prefix=banana)" == "2.0.0" ]]
 
 #test bump major with slash postfix
-readonly tagPrefixOrangeVersion_3_0_0="$(vergo bump major --push-tag --tag-prefix=orange/ --log-level=trace 2>&1)"
-[[ $tagPrefixOrangeVersion_3_0_0 == *'Set tag orange/3.0.0'* ]]
-[[ $tagPrefixOrangeVersion_3_0_0 == *'Pushing tag: orange/3.0.0'* ]]
+readonly tagPrefixOrangeVersion_3_0_0="$(vergo bump major --push-tag --tag-prefix=orange/v --log-level=trace 2>&1)"
+[[ $tagPrefixOrangeVersion_3_0_0 == *'Set tag orange/v3.0.0'* ]]
+[[ $tagPrefixOrangeVersion_3_0_0 == *'Pushing tag: orange/v3.0.0'* ]]
 #test bump major check version
-[[ "$(vergo get lr --tag-prefix=orange/)" == "3.0.0" ]]
-[[ "$(vergo get cv --tag-prefix=orange/)" == "3.0.0" ]]
+[[ "$(vergo get lr --tag-prefix=orange/v)" == "3.0.0" ]]
+[[ "$(vergo get cv --tag-prefix=orange/v)" == "3.0.0" ]]
 
 #test list tags with tag-prefix=app
 [[ "$(vergo list --tag-prefix=app --log-level=trace 2>&1)" == *'0.1.1
@@ -108,9 +108,9 @@ readonly tagPrefixOrangeVersion_3_0_0="$(vergo bump major --push-tag --tag-prefi
 0.2.0' ]]
 
 #test list tags with tag-prefix=orange
-[[ "$(vergo list --tag-prefix=orange/ --log-level=trace 2>&1)" == *'3.0.0
+[[ "$(vergo list --tag-prefix=orange/v --log-level=trace 2>&1)" == *'3.0.0
 2.3.0' ]]
-[[ "$(vergo list --tag-prefix=orange/ --log-level=trace --sort-direction asc 2>&1)" == *'2.3.0
+[[ "$(vergo list --tag-prefix=orange/v --log-level=trace --sort-direction asc 2>&1)" == *'2.3.0
 3.0.0' ]]
 
 #test list tags with tag-prefix=app with prefix included
@@ -130,14 +130,14 @@ apple-0.2.0' ]]
 [[ "$(vergo push --tag-prefix=apple --log-level=trace 2>&1)" == *'Pushing tag: apple-0.2.0'* ]]
 [[ "$(vergo push --tag-prefix=apple --log-level=trace 2>&1)" == *'origin remote was up to date, no push done'* ]]
 [[ "$(vergo push --tag-prefix=app --log-level=trace 2>&1)" == *'Pushing tag: app-0.1.1'* ]]
-[[ "$(vergo push --tag-prefix=orange/ --log-level=trace 2>&1)" == *'Pushing tag: orange/3.0.0'* ]]
+[[ "$(vergo push --tag-prefix=orange/v --log-level=trace 2>&1)" == *'Pushing tag: orange/v3.0.0'* ]]
 
 #test push tags are present on remote
-remote_tags=$(git ls-remote --tags origin apple-0.2.0 app-0.1.1 banana-2.0.0 orange/3.0.0)
+remote_tags=$(git ls-remote --tags origin apple-0.2.0 app-0.1.1 banana-2.0.0 orange/v3.0.0)
 [[ "${remote_tags}" == *'refs/tags/app-0.1.1'* ]]
 [[ "${remote_tags}" == *'refs/tags/apple-0.2.0'* ]]
 [[ "${remote_tags}" == *'refs/tags/banana-2.0.0'* ]]
-[[ "${remote_tags}" == *'refs/tags/orange/3.0.0'* ]]
+[[ "${remote_tags}" == *'refs/tags/orange/v3.0.0'* ]]
 
 #test headless checkout
 setUp

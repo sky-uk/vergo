@@ -43,10 +43,10 @@ func TestBumpShouldWorkWithIncrementsAndSlashPrefix(t *testing.T) {
 		t.Run(increment, func(t *testing.T) {
 			_, tempDir := PersistentRepository(t)
 			cmd, buffer := makeBump(t)
-			cmd.SetArgs([]string{"bump", increment, "--repository-location", tempDir, "-t", "prefix/", "-p"})
+			cmd.SetArgs([]string{"bump", increment, "--repository-location", tempDir, "-t", "prefix/v", "-p"})
 			err := cmd.Execute()
 			assert.Nil(t, err)
-			assert.Equal(t, "prefix/0.1.0", readBuffer(t, buffer))
+			assert.Equal(t, "prefix/v0.1.0", readBuffer(t, buffer))
 		})
 	}
 }

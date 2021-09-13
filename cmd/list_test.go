@@ -28,10 +28,10 @@ func TestListWithPrefix(t *testing.T) {
 func TestListWithSlashPrefix(t *testing.T) {
 	_, tempDir := PersistentRepository(t)
 	cmd, buffer := makeList(t)
-	cmd.SetArgs([]string{"list", "--repository-location", tempDir, "-t", "prefix/", "--log-level", "error", "-p"})
+	cmd.SetArgs([]string{"list", "--repository-location", tempDir, "-t", "prefix/v", "--log-level", "error", "-p"})
 	err := cmd.Execute()
 	assert.Nil(t, err)
-	assert.Equal(t, "prefix/0.2.0\nprefix/0.1.0\n", readBuffer(t, buffer))
+	assert.Equal(t, "prefix/v0.2.0\nprefix/v0.1.0\n", readBuffer(t, buffer))
 }
 
 func TestListDetectDotGit(t *testing.T) {
