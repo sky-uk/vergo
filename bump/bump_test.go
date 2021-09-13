@@ -17,7 +17,11 @@ import (
 
 const firstVersion = "0.1.0"
 
-var mainBranch = []string{"master"}
+var (
+	prefixes   = []string{"", "app", "application", "app/v"}
+	increments = []string{"patch", "minor", "major"}
+	mainBranch = []string{"master"}
+)
 
 //nolint:scopelint,paralleltest
 func TestShouldIncrementVersion(t *testing.T) {
@@ -53,8 +57,6 @@ func TestShouldIncrementVersion(t *testing.T) {
 
 //nolint:scopelint,paralleltest
 func TestBumpShouldFailWhenThereIsNoCommit(t *testing.T) {
-	prefixes := []string{"", "app", "application"}
-	increments := []string{"patch", "minor", "major"}
 	for _, prefix := range prefixes {
 		for _, increment := range increments {
 			t.Run(prefix+"-"+increment, func(t *testing.T) {
@@ -70,8 +72,6 @@ func TestBumpShouldFailWhenThereIsNoCommit(t *testing.T) {
 
 //nolint:scopelint,paralleltest
 func TestBumpShouldCreateFirstTag(t *testing.T) {
-	prefixes := []string{"", "app", "application", "app/v"}
-	increments := []string{"patch", "minor", "major"}
 	for _, prefix := range prefixes {
 		for _, increment := range increments {
 			t.Run(prefix+"-"+increment, func(t *testing.T) {
@@ -86,8 +86,6 @@ func TestBumpShouldCreateFirstTag(t *testing.T) {
 
 //nolint:scopelint,paralleltest
 func TestShouldBeAbleToCallBumpMultipleTimes(t *testing.T) {
-	prefixes := []string{"", "app", "application", "app/v"}
-	increments := []string{"patch", "minor", "major"}
 	for _, prefix := range prefixes {
 		for _, increment := range increments {
 			t.Run(prefix+"-"+increment, func(t *testing.T) {
@@ -107,8 +105,6 @@ func TestShouldBeAbleToCallBumpMultipleTimes(t *testing.T) {
 
 //nolint:scopelint,paralleltest
 func TestBumpShouldFailWhenNotOnMainBranch(t *testing.T) {
-	prefixes := []string{"", "app", "application", "app/v"}
-	increments := []string{"patch", "minor", "major"}
 	for _, prefix := range prefixes {
 		for _, increment := range increments {
 			t.Run(prefix+"-"+increment, func(t *testing.T) {
@@ -147,7 +143,6 @@ func TestBumpShouldWorkWhenHeadlessCheckout(t *testing.T) {
 
 //nolint:scopelint,paralleltest
 func TestBumpWithAnnotatedTags(t *testing.T) {
-	prefixes := []string{"", "app", "application"}
 	for _, prefix := range prefixes {
 		t.Run(prefix, func(t *testing.T) {
 			r := NewTestRepo(t)
@@ -185,7 +180,6 @@ func TestBumpWithAnnotatedTags(t *testing.T) {
 
 //nolint:scopelint,paralleltest
 func TestBumpAllIncrements(t *testing.T) {
-	prefixes := []string{"", "app", "application", "app/v"}
 	versions := []struct {
 		increment         string
 		versionedBranches []string

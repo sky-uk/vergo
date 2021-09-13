@@ -7,7 +7,8 @@ import (
 )
 
 var (
-	ErrInvalidArg = errors.New("invalid arg")
+	ErrInvalidArg           = errors.New("invalid arg")
+	ErrUndefinedSSHAuthSock = errors.New("SSH_AUTH_SOCK is not defined")
 )
 
 func sanitiseTagPrefix(tagPrefix string) string {
@@ -24,8 +25,6 @@ func sanitiseTagPrefix(tagPrefix string) string {
 		return tagPrefix + "-"
 	}
 }
-
-var ErrUndefinedSSHAuthSock = errors.New("SSH_AUTH_SOCK is not defined")
 
 func checkAuthSocket(pushTag bool) (string, error) {
 	socket, found := os.LookupEnv("SSH_AUTH_SOCK")

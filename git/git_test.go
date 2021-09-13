@@ -17,10 +17,12 @@ import (
 	"time"
 )
 
+var (
+	prefixes = []string{"", "app", "application", "app/v"}
+)
+
 //nolint:scopelint,paralleltest
 func TestNoTag(t *testing.T) {
-	prefixes := []string{"", "app", "application", "app/"}
-
 	for _, prefix := range prefixes {
 		t.Run(prefix, func(t *testing.T) {
 			r := NewTestRepo(t)
@@ -38,8 +40,6 @@ func TestNoTag(t *testing.T) {
 
 //nolint:scopelint,paralleltest
 func TestTagExists(t *testing.T) {
-	prefixes := []string{"", "app", "application", "app/"}
-
 	for _, prefix := range prefixes {
 		t.Run(prefix, func(t *testing.T) {
 			r := NewTestRepo(t)
@@ -55,8 +55,6 @@ func TestTagExists(t *testing.T) {
 
 //nolint:scopelint,paralleltest
 func TestAnnotatedTagExists(t *testing.T) {
-	prefixes := []string{"", "app", "application"}
-
 	for _, prefix := range prefixes {
 		t.Run(prefix, func(t *testing.T) {
 			r := NewTestRepo(t)
@@ -77,8 +75,6 @@ func TestAnnotatedTagExists(t *testing.T) {
 
 //nolint:scopelint,paralleltest
 func TestTagAlreadyExists(t *testing.T) {
-	prefixes := []string{"", "app", "application", "app/"}
-
 	for _, prefix := range prefixes {
 		t.Run(prefix, func(t *testing.T) {
 			r := NewTestRepo(t)
@@ -94,7 +90,6 @@ func TestTagAlreadyExists(t *testing.T) {
 
 //nolint:funlen,scopelint,paralleltest
 func TestListRefs(t *testing.T) {
-	prefixes := []string{"", "app", "application", "app/"}
 	r := NewTestRepo(t)
 
 	t.Run("tag does not exist", func(t *testing.T) {
@@ -272,8 +267,6 @@ var dontNeedPreRelease = func(version *semver.Version) (semver.Version, error) {
 
 //nolint:scopelint,paralleltest
 func TestCurrentVersionTagOnTheHead(t *testing.T) {
-	prefixes := []string{"", "app", "application"}
-
 	for _, prefix := range prefixes {
 		t.Run(prefix, func(t *testing.T) {
 			r := NewTestRepo(t)
@@ -290,8 +283,6 @@ func TestCurrentVersionTagOnTheHead(t *testing.T) {
 
 //nolint:scopelint,paralleltest
 func TestCurrentVersionNoTagOnTheHead(t *testing.T) {
-	prefixes := []string{"", "app", "application", "app/"}
-
 	for _, prefix := range prefixes {
 		t.Run(prefix, func(t *testing.T) {
 			r := NewTestRepo(t)
@@ -311,8 +302,6 @@ func TestCurrentVersionNoTagOnTheHead(t *testing.T) {
 
 //nolint:scopelint,paralleltest
 func TestCurrentVersionWithCheckoutOlderRelease(t *testing.T) {
-	prefixes := []string{"", "app", "application"}
-
 	for _, prefix := range prefixes {
 		t.Run(prefix, func(t *testing.T) {
 			r := NewTestRepo(t)
@@ -347,8 +336,6 @@ func TestCurrentVersionWithCheckoutOlderRelease(t *testing.T) {
 
 //nolint:scopelint,paralleltest
 func TestCurrentVersionWithAnnotatedTags(t *testing.T) {
-	prefixes := []string{"", "app", "application"}
-
 	for _, prefix := range prefixes {
 		t.Run(prefix, func(t *testing.T) {
 			r := NewTestRepo(t)
@@ -388,8 +375,6 @@ func TestCurrentVersionWithAnnotatedTags(t *testing.T) {
 
 //nolint:scopelint,paralleltest
 func TestCurrentVersionNoTagOnTheHeadInvalidPrerelease(t *testing.T) {
-	prefixes := []string{"", "app", "application", "app/"}
-
 	preReleases := []struct {
 		fn    PreRelease
 		error string
@@ -427,7 +412,6 @@ func TestCurrentVersionNoTagOnTheHeadInvalidPrerelease(t *testing.T) {
 //nolint:scopelint,paralleltest
 func TestListNoTag(t *testing.T) {
 	maxListSize := 10
-	prefixes := []string{"", "app", "application", "app/"}
 	for _, prefix := range prefixes {
 		t.Run(prefix, func(t *testing.T) {
 			r := NewTestRepo(t)
@@ -441,7 +425,6 @@ func TestListNoTag(t *testing.T) {
 //nolint:scopelint,paralleltest
 func TestList(t *testing.T) {
 	var mainBranch = []string{"master"}
-	prefixes := []string{"", "app", "application", "app/"}
 	for _, prefix := range prefixes {
 		t.Run(prefix, func(t *testing.T) {
 			r := NewTestRepo(t)
