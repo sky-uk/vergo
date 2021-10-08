@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.17.0] - 08-10-2021
+
+fail gracefully when no private keys available in the authentication agent
+
 ## [0.16.0] - 09-09-2021
 
 Recognise tags with a slash prefix in order to support go multi-module projects
