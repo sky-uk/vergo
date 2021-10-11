@@ -116,8 +116,8 @@ func PushTag(r *gogit.Repository, socket, version, prefix, remote string, dryRun
 	}()
 
 	signers, err := agentClient.Signers()
-	if err != nil {
-		log.WithError(err).Fatalln("failed to get signers")
+	if err != nil || len(signers) == 0 {
+		log.WithError(err).Fatalln("failed to get signers, make sure to add private key identities to the authentication agent")
 	}
 
 	auth := &ssh.PublicKeys{
