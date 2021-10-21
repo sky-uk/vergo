@@ -7,10 +7,10 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/storage/memory"
+	. "github.com/sky-uk/umc-shared/vergo/bump"
+	. "github.com/sky-uk/umc-shared/vergo/git"
+	. "github.com/sky-uk/umc-shared/vergo/internal-test"
 	"github.com/stretchr/testify/assert"
-	. "sky.uk/vergo/bump"
-	. "sky.uk/vergo/git"
-	. "sky.uk/vergo/internal-test"
 	"testing"
 	"time"
 )

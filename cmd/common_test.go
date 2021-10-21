@@ -5,12 +5,12 @@ import (
 	"errors"
 	"github.com/Masterminds/semver"
 	gogit "github.com/go-git/go-git/v5"
+	. "github.com/sky-uk/umc-shared/vergo/cmd"
+	vergo "github.com/sky-uk/umc-shared/vergo/git"
+	. "github.com/sky-uk/umc-shared/vergo/internal-test"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
-	. "sky.uk/vergo/cmd"
-	vergo "sky.uk/vergo/git"
-	. "sky.uk/vergo/internal-test"
 	"testing"
 )
 

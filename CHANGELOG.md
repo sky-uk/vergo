@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.18.0] - 21-10-2021
+
+Rename go.mod module name and required imports to follow remote go module path conventions 
+
 ## [0.17.0] - 08-10-2021
 
 fail gracefully when no private keys available in the authentication agent

@@ -1,4 +1,4 @@
-module sky.uk/vergo
+module github.com/sky-uk/umc-shared/vergo
 
 go 1.15
 

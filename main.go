@@ -1,8 +1,8 @@
 package main
 
 import (
+	"github.com/sky-uk/umc-shared/vergo/cmd"
 	"os"
-	"sky.uk/vergo/cmd"
 )
 
 func main() {

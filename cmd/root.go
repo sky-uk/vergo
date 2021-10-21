@@ -2,10 +2,10 @@ package cmd
 
 import (
 	log "github.com/sirupsen/logrus"
+	bumpImpl "github.com/sky-uk/umc-shared/vergo/bump"
+	vergo "github.com/sky-uk/umc-shared/vergo/git"
 	"github.com/spf13/cobra"
 	"os"
-	bumpImpl "sky.uk/vergo/bump"
-	vergo "sky.uk/vergo/git"
 )
 
 func RootCmd() *cobra.Command {
