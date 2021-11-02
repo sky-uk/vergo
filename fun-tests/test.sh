@@ -30,6 +30,17 @@ readonly headShort="$(git rev-parse --short HEAD)"
 readonly vergoVersion="$(vergo version simple)"
 setUp
 
+#test check release
+vergo check release --tag-prefix=apple
+vergo check release --tag-prefix=app
+vergo check release --tag-prefix=banana
+if vergo check release --tag-prefix=cherry; then
+  false
+else
+  true
+fi
+[[ "$(vergo check release --tag-prefix=cherry 2>&1)" == 'Error: skip release hint present: cherry' ]]
+
 #test get latest-release
 [[ "$(vergo get lr --tag-prefix=apple)" == "0.1.1" ]]
 [[ "$(vergo get lr --tag-prefix=app)" == "0.1.0" ]]

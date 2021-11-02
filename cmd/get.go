@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/Masterminds/semver/v3"
 	"github.com/go-git/go-git/v5"
-	gogit "github.com/go-git/go-git/v5"
 	vergo "github.com/sky-uk/umc-shared/vergo/git"
 	"github.com/spf13/cobra"
 	"github.com/thoas/go-funk"
@@ -19,7 +18,7 @@ func ExactValidArgs(n int) cobra.PositionalArgs {
 	}
 }
 
-// OnlyValidArgs returns an error if any args are not in the list of ValidArgs.
+// OnlyValidArgsAndAliases returns an error if any args are not in the list of ValidArgs.
 func OnlyValidArgsAndAliases(cmd *cobra.Command, args []string) error {
 	if err := cobra.OnlyValidArgs(cmd, args); err != nil {
 		if len(cmd.ArgAliases) > 0 {
@@ -36,8 +35,8 @@ func OnlyValidArgsAndAliases(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-type RefFunc func(repo *gogit.Repository, prefix string) (vergo.SemverRef, error)
-type CurrentVersionFunc func(repo *gogit.Repository, prefix string, preRelease vergo.PreRelease) (vergo.SemverRef, error)
+type RefFunc func(repo *git.Repository, prefix string) (vergo.SemverRef, error)
+type CurrentVersionFunc func(repo *git.Repository, prefix string, preRelease vergo.PreRelease) (vergo.SemverRef, error)
 
 func GetCmd(latest, previous RefFunc, current CurrentVersionFunc) *cobra.Command {
 	cmd := &cobra.Command{

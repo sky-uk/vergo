@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"github.com/Masterminds/semver/v3"
-	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5"
 	. "github.com/sky-uk/umc-shared/vergo/cmd"
 	vergo "github.com/sky-uk/umc-shared/vergo/git"
 	. "github.com/sky-uk/umc-shared/vergo/internal-test"
+	"github.com/sky-uk/umc-shared/vergo/release"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
@@ -16,17 +17,31 @@ import (
 
 func bumpSuccess(t *testing.T) BumpFunc {
 	t.Helper()
-	return func(repo *gogit.Repository, tagPrefix, increment string, versionedBranches []string, dryRun bool) (*semver.Version, error) {
+	return func(repo *git.Repository, tagPrefix, increment string, versionedBranches []string, dryRun bool) (*semver.Version, error) {
 		return NewVersionT(t, "0.1.0"), nil
 	}
 }
 
-func mockPushTagSuccess(repo *gogit.Repository, socket, version, prefix, remote string, dryRun bool) error {
+func mockPushTagSuccess(repo *git.Repository, socket, version, prefix, remote string, dryRun bool) error {
 	return nil
 }
 
-func mockPushTagFailure(repo *gogit.Repository, socket, version, prefix, remote string, dryRun bool) error {
+func mockPushTagFailure(repo *git.Repository, socket, version, prefix, remote string, dryRun bool) error {
 	return errors.New("push tag failed")
+}
+
+func checkReleaseSuccess(t *testing.T) CheckReleaseFunc {
+	t.Helper()
+	return func(repo *git.Repository, tagPrefixRaw string) error {
+		return nil
+	}
+}
+
+func checkReleaseFail(t *testing.T) CheckReleaseFunc {
+	t.Helper()
+	return func(repo *git.Repository, tagPrefixRaw string) error {
+		return release.ErrSkipRelease
+	}
 }
 
 func makeBump(t *testing.T) (*cobra.Command, *bytes.Buffer) {
@@ -49,19 +64,39 @@ func pushTagFail(t *testing.T) (*cobra.Command, *bytes.Buffer) {
 	return cmd, b
 }
 
+func makeCheck(t *testing.T) (*cobra.Command, *bytes.Buffer) {
+	t.Helper()
+	cmd := RootCmd()
+	cmd.AddCommand(CheckCmd(checkReleaseSuccess(t)))
+	b := bytes.NewBufferString("")
+	cmd.SetOut(b)
+	cmd.SetErr(b)
+	return cmd, b
+}
+
+func makeCheckFail(t *testing.T) (*cobra.Command, *bytes.Buffer) {
+	t.Helper()
+	cmd := RootCmd()
+	cmd.AddCommand(CheckCmd(checkReleaseFail(t)))
+	b := bytes.NewBufferString("")
+	cmd.SetOut(b)
+	cmd.SetErr(b)
+	return cmd, b
+}
+
 func makeGet(t *testing.T) (*cobra.Command, *bytes.Buffer) {
 	t.Helper()
-	latest := func(repo *gogit.Repository, prefix string) (vergo.SemverRef, error) {
+	latest := func(repo *git.Repository, prefix string) (vergo.SemverRef, error) {
 		return vergo.SemverRef{
 			Version: NewVersionT(t, "0.1.0"),
 		}, nil
 	}
-	previous := func(repo *gogit.Repository, prefix string) (vergo.SemverRef, error) {
+	previous := func(repo *git.Repository, prefix string) (vergo.SemverRef, error) {
 		return vergo.SemverRef{
 			Version: NewVersionT(t, "0.1.0"),
 		}, nil
 	}
-	current := func(repo *gogit.Repository, prefix string, preRelease vergo.PreRelease) (vergo.SemverRef, error) {
+	current := func(repo *git.Repository, prefix string, preRelease vergo.PreRelease) (vergo.SemverRef, error) {
 		return vergo.SemverRef{
 			Version: NewVersionT(t, "0.1.0"),
 		}, nil
@@ -77,7 +112,7 @@ func makeGet(t *testing.T) (*cobra.Command, *bytes.Buffer) {
 
 func makeList(t *testing.T) (*cobra.Command, *bytes.Buffer) {
 	t.Helper()
-	var emptyListRef = func(repo *gogit.Repository, prefix string, direction vergo.SortDirection, maxListSize int) ([]vergo.SemverRef, error) {
+	var emptyListRef = func(repo *git.Repository, prefix string, direction vergo.SortDirection, maxListSize int) ([]vergo.SemverRef, error) {
 		return []vergo.SemverRef{
 			{Version: NewVersionT(t, "0.2.0")},
 			{Version: NewVersionT(t, "0.1.0")},

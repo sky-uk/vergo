@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.20.0] - 02-11-2021
+
+add capability to check if a release can be skipped
+
 ## [0.19.0] - 02-11-2021
 
 bump dependency versions

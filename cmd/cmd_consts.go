@@ -8,6 +8,7 @@ const logLevel = "log-level"
 const remoteName = "remote-name"
 
 const pushTagParam = "push-tag"
+const mergeCommits = "merge-commits"
 
 const withPrefix = "with-prefix"
 const withMetadata = "with-metadata"

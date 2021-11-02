@@ -37,8 +37,16 @@ Vergo is an executable command line tool that is an alternative to axion gradle 
 
 * supports the creation of tags with / seperated postfix will bump tags with the structure `orange/<major>.<minor>.<patch>`
 
-`vergo bump major --tag-prefix=orange/`
+  `vergo bump major --tag-prefix=orange/`
 
+* checks if a release can be skipped by inspecting the latest commit message. If the commit message includes the hint `vergo:banana:skip-release` then the command fails saying release not required. But this does not prevent `bump` from incrementing the tags. 
+
+  ```
+  # expected usage 
+  if vergo check release --tag-prefix=banana; then
+    vergo bump major --tag-prefix=banana
+  fi
+  ```
 
 # Comparison of axion-release-plugin and vergo
 

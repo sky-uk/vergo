@@ -21,7 +21,9 @@ pre-check: $(if $(shell which golangci-lint), command-available, bin/golangci-li
 	go vet ./...
 	golangci-lint run ./...
 
+.ONESHELL:
 release: bin build-test
+	bin/vergo check release --tag-prefix vergo || exit 0
 	bin/vergo bump minor --tag-prefix vergo
 	GORELEASER_CURRENT_TAG=`bin/vergo get latest-release --tag-prefix vergo -p` \
 	GORELEASER_PREVIOUS_TAG=`bin/vergo get previous-release --tag-prefix vergo -p` \

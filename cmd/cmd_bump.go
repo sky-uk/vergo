@@ -3,19 +3,18 @@ package cmd
 import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/go-git/go-git/v5"
-	gogit "github.com/go-git/go-git/v5"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 type BumpFunc func(
-	repo *gogit.Repository,
+	repo *git.Repository,
 	tagPrefix, increment string,
 	versionedBranches []string,
 	dryRun bool) (*semver.Version, error)
 
 type PushTagFunc func(
-	repo *gogit.Repository,
+	repo *git.Repository,
 	socket, version, prefix, remote string,
 	dryRun bool) error
 

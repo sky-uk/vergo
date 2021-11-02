@@ -2,8 +2,9 @@ package cmd
 
 import (
 	log "github.com/sirupsen/logrus"
-	bumpImpl "github.com/sky-uk/umc-shared/vergo/bump"
+	"github.com/sky-uk/umc-shared/vergo/bump"
 	vergo "github.com/sky-uk/umc-shared/vergo/git"
+	"github.com/sky-uk/umc-shared/vergo/release"
 	"github.com/spf13/cobra"
 	"os"
 )
@@ -84,10 +85,12 @@ func readRootFlags(cmd *cobra.Command) (*RootFlags, error) {
 // Execute executes the root command.
 func Execute() error {
 	var rootCmd = RootCmd()
-	rootCmd.AddCommand(BumpCmd(bumpImpl.Bump, vergo.PushTag))
+	rootCmd.AddCommand(BumpCmd(bump.Bump, vergo.PushTag))
 	rootCmd.AddCommand(GetCmd(vergo.LatestRef, vergo.PreviousRef, vergo.CurrentVersion))
 	rootCmd.AddCommand(PushCmd())
 	rootCmd.AddCommand(ListCmd(vergo.ListRefs))
+	rootCmd.AddCommand(CheckCmd(release.CheckRelease))
+	rootCmd.AddCommand(ShowCmd())
 	rootCmd.AddCommand(VersionCmd())
 	return rootCmd.Execute()
 }
