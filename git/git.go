@@ -3,7 +3,7 @@ package git
 import (
 	"errors"
 	"fmt"
-	"github.com/Masterminds/semver"
+	"github.com/Masterminds/semver/v3"
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -23,6 +23,10 @@ const refPrefix = "refs/tags/"
 type SortDirection string
 
 const (
+	semVerRegex = `v?([0-9]+)(\.[0-9]+)?(\.[0-9]+)?` +
+		`(-([0-9A-Za-z\-]+(\.[0-9A-Za-z\-]+)*))?` +
+		`(\+([0-9A-Za-z\-]+(\.[0-9A-Za-z\-]+)*))?`
+
 	asc  = "asc"
 	desc = "desc"
 	ASC  = SortDirection(asc)
@@ -217,7 +221,7 @@ func reversedRefsWithPrefix(repo *gogit.Repository, prefix string) ([]SemverRef,
 
 func refsWithPrefix(repo *gogit.Repository, prefix string) ([]SemverRef, error) {
 	tagPrefix := refPrefix + prefix
-	re := regexp.MustCompile("^" + tagPrefix + semver.SemVerRegex + "$")
+	re := regexp.MustCompile("^" + tagPrefix + semVerRegex + "$")
 
 	tagRefs, err := repo.Tags()
 	if err != nil {

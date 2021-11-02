@@ -2,7 +2,7 @@ package internal_test
 
 import (
 	"fmt"
-	"github.com/Masterminds/semver"
+	"github.com/Masterminds/semver/v3"
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-billy/v5/util"
 	gogit "github.com/go-git/go-git/v5"
