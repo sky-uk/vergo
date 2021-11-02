@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/Masterminds/semver"
+	"github.com/Masterminds/semver/v3"
 	"github.com/go-git/go-git/v5"
 	gogit "github.com/go-git/go-git/v5"
 	vergo "github.com/sky-uk/umc-shared/vergo/git"

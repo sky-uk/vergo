@@ -3,7 +3,7 @@ package cmd_test
 import (
 	"bytes"
 	"errors"
-	"github.com/Masterminds/semver"
+	"github.com/Masterminds/semver/v3"
 	gogit "github.com/go-git/go-git/v5"
 	. "github.com/sky-uk/umc-shared/vergo/cmd"
 	vergo "github.com/sky-uk/umc-shared/vergo/git"

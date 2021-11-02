@@ -3,7 +3,7 @@ package git_test
 import (
 	"errors"
 	"fmt"
-	"github.com/Masterminds/semver"
+	"github.com/Masterminds/semver/v3"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/sky-uk/umc-shared/vergo/bump"

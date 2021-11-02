@@ -3,7 +3,7 @@ package bump
 import (
 	"errors"
 	"fmt"
-	"github.com/Masterminds/semver"
+	"github.com/Masterminds/semver/v3"
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	log "github.com/sirupsen/logrus"

@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.19.0] - 02-11-2021
+
+bump dependency versions
+
 ## [0.18.0] - 21-10-2021
 
 Rename go.mod module name and required imports to follow remote go module path conventions 
