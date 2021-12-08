@@ -9,10 +9,11 @@ import (
 
 //nolint:gochecknoglobals
 var (
-	version string
-	commit  string
-	date    string
-	builtBy string
+	version  string
+	commit   string
+	date     string
+	builtBy  string
+	snapshot string
 )
 
 func VersionCmd() *cobra.Command {
@@ -23,6 +24,9 @@ func VersionCmd() *cobra.Command {
 		ValidArgs: []string{"simple"},
 		Args:      cobra.OnlyValidArgs,
 		Run: func(cmd *cobra.Command, args []string) {
+			if snapshot == "true" {
+				fmt.Println("This is a SNAPSHOT build")
+			}
 			if funk.ContainsString(args, "simple") {
 				fmt.Print(version) //nolint
 			} else {
