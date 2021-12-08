@@ -2,47 +2,80 @@
 
 export
 
-SHELL := /bin/bash
-LINTER_VERSION := 1.36.0
+GORELEASER_VERSION := 1.1.0
+LINTER_VERSION := 1.43.0
 UPLOAD_TARGET=https://nexus.api.bskyb.com/nexus/content/repositories/nova-packages
 PATH := $(shell pwd)/bin:$(PATH)
+SHELL := bash
 
-bin:
-	mkdir -p bin/
+.ONESHELL:
+.SHELLFLAGS := -ec
+
+bash-required-version:
+	$(if $(filter oneshell,${.FEATURES}) \
+	  , \
+	  ,$(error oneshell not supported - update your make))
+
+check-bash: bash-required-version
+	@test $$BASH_VERSINFO = 5 || test $$BASH_VERSINFO = 4
+
+bin: check-bash
+	@mkdir -p bin/
 
 bin/golangci-lint: bin
-	curl -fsL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v${LINTER_VERSION}
+	@test -f $@ ||
+	(
+		curl -fsL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v${LINTER_VERSION}
+		bin/golangci-lint version
+	)
 
-command-available:
-	#this empty target is for 'if' syntax to work
+bin/goreleaser: bin
+	@test -f $@ ||
+	(
+		case `uname` in
+		Darwin)
+			curl -fsL https://github.com/goreleaser/goreleaser/releases/download/v${GORELEASER_VERSION}/goreleaser_Darwin_all.tar.gz -o goreleaser.tgz
+			;;
+		Linux)
+			curl -fsL https://github.com/goreleaser/goreleaser/releases/download/v${GORELEASER_VERSION}/goreleaser_Linux_x86_64.tar.gz -o goreleaser.tgz
+			;;
+		esac
+		tar xvf goreleaser.tgz -C bin goreleaser
+		rm goreleaser.tgz
+		bin/goreleaser --version
+	)
 
-pre-check: $(if $(shell which golangci-lint), command-available, bin/golangci-lint)
+tools: bin/goreleaser bin/golangci-lint
+
+pre-check: tools
 	[[ `(gofmt -l .)`x == x ]] || (echo "go fmt failed" && gofmt -l . && exit 1)
 	go vet ./...
 	golangci-lint run ./...
 
-.ONESHELL:
-release: bin build-test
+release: build
 	bin/vergo check release --tag-prefix vergo || exit 0
 	bin/vergo bump minor --tag-prefix vergo
+	BUILT_BY="`goreleaser --version | head -n1`, `go version`" \
 	GORELEASER_CURRENT_TAG=`bin/vergo get latest-release --tag-prefix vergo -p` \
 	GORELEASER_PREVIOUS_TAG=`bin/vergo get previous-release --tag-prefix vergo -p` \
-	goreleaser release --skip-validate --rm-dist
+	goreleaser release --rm-dist
 	bin/vergo push --tag-prefix vergo
 
 unit-tests: pre-check
 	go clean -testcache
 	go test ./...
 
-fun-tests: build-test
+fun-tests: build
 	./fun-tests/test.sh
 
-test: unit-tests fun-tests
+test: build unit-tests fun-tests
 test-compile:
 	go test --exec=true ./...
 
-build-test: bin pre-check
-	GORELEASER_CURRENT_TAG=`git rev-parse --short HEAD` goreleaser build --snapshot --rm-dist
+build: pre-check
+	BUILT_BY="`goreleaser --version | head -n1`, `go version`" \
+	GORELEASER_CURRENT_TAG=0+`git rev-parse --short HEAD` \
+	goreleaser build --snapshot --rm-dist
 	@dist/vergo_`uname | tr A-Z a-z`_amd64/vergo version
 	@cp dist/vergo_`uname | tr A-Z a-z`_amd64/vergo bin/vergo
 

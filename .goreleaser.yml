@@ -1,6 +1,7 @@
 project_name: vergo
 before:
   hooks:
+    - go mod tidy
     - go mod download
 
 builds:
@@ -21,7 +22,8 @@ builds:
       - -X github.com/sky-uk/umc-shared/vergo/cmd.version={{.Env.GORELEASER_CURRENT_TAG}}
       - -X github.com/sky-uk/umc-shared/vergo/cmd.commit={{.Commit}}
       - -X github.com/sky-uk/umc-shared/vergo/cmd.date={{.Date}}
-      - -X github.com/sky-uk/umc-shared/vergo/cmd.builtBy=goreleaser
+      - -X github.com/sky-uk/umc-shared/vergo/cmd.snapshot={{.IsSnapshot}}
+      - -X "github.com/sky-uk/umc-shared/vergo/cmd.builtBy={{.Env.BUILT_BY}}"
 
 snapshot:
   name_template: "{{ .Env.GORELEASER_CURRENT_TAG }}"
