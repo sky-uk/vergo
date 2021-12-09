@@ -58,7 +58,7 @@ release: build
 	BUILT_BY="`goreleaser --version | head -n1`, `go version`" \
 	GORELEASER_CURRENT_TAG=`bin/vergo get latest-release --tag-prefix vergo -p` \
 	GORELEASER_PREVIOUS_TAG=`bin/vergo get previous-release --tag-prefix vergo -p` \
-	goreleaser release --rm-dist
+	goreleaser release --skip-validate --rm-dist
 	bin/vergo push --tag-prefix vergo
 
 unit-tests: pre-check
