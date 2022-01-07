@@ -5,7 +5,26 @@
 Vergo is an executable command line tool that is an alternative to axion gradle plugin
 (https://github.com/allegro/axion-release-plugin.git)
 
-# Simple usages
+## Installation
+
+### Mac
+
+```bash
+curl -sLo vergo_vergo-0.20.0_darwin_amd64.tar.gz https://nexus.api.bskyb.com/nexus/service/local/repositories/nova-packages/content/vergo/vergo-0.20.0/vergo_vergo-0.20.0_darwin_amd64.tar.gz \
+      && tar -xzf vergo_vergo-0.20.0_darwin_amd64.tar.gz -C /usr/local/bin \
+      && rm vergo_vergo-0.20.0_darwin_amd64.tar.gz
+```
+
+### Linux
+
+```bash
+curl -sLo vergo_vergo-0.20.0_linux_amd64.tar.gz https://nexus.api.bskyb.com/nexus/service/local/repositories/nova-packages/content/vergo/vergo-0.20.0/vergo_vergo-0.20.0_linux_amd64.tar.gz \
+      && tar -xzf vergo_vergo-0.20.0_linux_amd64.tar.gz -C /usr/local/bin \
+      && rm vergo_vergo-0.20.0_linux_amd64.tar.gz
+```
+
+
+## Simple usages
 
 * returns the latest tag/release prefixed with banana
 
@@ -48,7 +67,7 @@ Vergo is an executable command line tool that is an alternative to axion gradle 
   fi
   ```
 
-# Comparison of axion-release-plugin and vergo
+## Comparison of axion-release-plugin and vergo
 
 ### axion-release-plugin
 
