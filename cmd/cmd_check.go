@@ -7,7 +7,7 @@ import (
 
 type CheckReleaseFunc func(repo *git.Repository, tagPrefixRaw string) error
 
-func CheckCmd(checkRelease CheckReleaseFunc) *cobra.Command {
+func CheckCmd(checks []CheckReleaseFunc) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:       "check (release)",
 		Short:     "performs validations",
@@ -23,7 +23,16 @@ func CheckCmd(checkRelease CheckReleaseFunc) *cobra.Command {
 				return err
 			}
 
-			return checkRelease(repo, rootFlags.tagPrefixRaw)
+			var errs errs
+			for _, check := range checks {
+				if err := check(repo, rootFlags.tagPrefixRaw); err != nil {
+					errs = append(errs, err)
+				}
+			}
+			if len(errs) > 0 {
+				return errs
+			}
+			return nil
 		},
 	}
 	return cmd

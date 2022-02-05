@@ -11,14 +11,14 @@ var (
 	ErrSkipRelease = errors.New("skip release hint present")
 )
 
-func skipReleaseHintPresent(aString, tagPrefix string) bool {
+func checkSkipHint(aString, tagPrefix string) bool {
 	if tagPrefix == "" {
 		return regexp.MustCompile("vergo:skip-release").MatchString(aString)
 	}
 	return regexp.MustCompile("vergo:" + tagPrefix + ":skip-release").MatchString(aString)
 }
 
-func CheckRelease(repo *git.Repository, tagPrefixRaw string) error {
+func SkipHintPresent(repo *git.Repository, tagPrefixRaw string) error {
 	head, err := repo.Head()
 	if err != nil {
 		return err
@@ -27,7 +27,7 @@ func CheckRelease(repo *git.Repository, tagPrefixRaw string) error {
 	if err != nil {
 		return err
 	}
-	if skipReleaseHintPresent(commit.Message, tagPrefixRaw) {
+	if checkSkipHint(commit.Message, tagPrefixRaw) {
 		return fmt.Errorf("%w: %s", ErrSkipRelease, tagPrefixRaw)
 	}
 	return nil

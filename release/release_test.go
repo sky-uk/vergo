@@ -32,16 +32,16 @@ func TestShouldVerifySkipReleaseHint(t *testing.T) {
 		for _, message := range testCase.messages {
 			t.Run(testCase.tagPrefix+message, func(t *testing.T) {
 				r := NewTestRepo(t)
-				assert.Nil(t, release.CheckRelease(r.Repo, testCase.tagPrefix))
+				assert.Nil(t, release.SkipHintPresent(r.Repo, testCase.tagPrefix))
 
 				DoCommitWithMessage(t, r.Repo, "some content 1", message)
-				assert.ErrorIs(t, release.CheckRelease(r.Repo, testCase.tagPrefix), release.ErrSkipRelease)
+				assert.ErrorIs(t, release.SkipHintPresent(r.Repo, testCase.tagPrefix), release.ErrSkipRelease)
 
 				DoCommitWithMessage(t, r.Repo, "some content 2", "another commit")
-				assert.Nil(t, release.CheckRelease(r.Repo, testCase.tagPrefix))
+				assert.Nil(t, release.SkipHintPresent(r.Repo, testCase.tagPrefix))
 
 				DoCommitWithMessage(t, r.Repo, "some content 3", "another commit"+message)
-				assert.ErrorIs(t, release.CheckRelease(r.Repo, testCase.tagPrefix), release.ErrSkipRelease)
+				assert.ErrorIs(t, release.SkipHintPresent(r.Repo, testCase.tagPrefix), release.ErrSkipRelease)
 			})
 		}
 	}
