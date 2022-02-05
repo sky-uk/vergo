@@ -71,6 +71,7 @@ build: pre-check
 	goreleaser build --snapshot --rm-dist
 	@dist/vergo_`uname | tr A-Z a-z`_amd64/vergo version
 	@cp dist/vergo_`uname | tr A-Z a-z`_amd64/vergo bin/vergo
+	@cp dist/vergo_`uname | tr A-Z a-z`_amd64/vergo /usr/local/bin/vergo 2>/dev/null || true
 
 extended-linter: pre-check
 	golangci-lint run --enable-all --disable wrapcheck,nlreturn,exhaustivestruct,wsl,gofumpt,gci ./...

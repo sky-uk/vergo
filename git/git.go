@@ -18,12 +18,11 @@ import (
 	"strings"
 )
 
-const refPrefix = "refs/tags/"
-
 type SortDirection string
 
 const (
-	semVerRegex = `v?([0-9]+)(\.[0-9]+)?(\.[0-9]+)?` +
+	refTagPrefix = "refs/tags/"
+	semVerRegex  = `v?([0-9]+)(\.[0-9]+)?(\.[0-9]+)?` +
 		`(-([0-9A-Za-z\-]+(\.[0-9A-Za-z\-]+)*))?` +
 		`(\+([0-9A-Za-z\-]+(\.[0-9A-Za-z\-]+)*))?`
 
@@ -54,7 +53,7 @@ func ParseSortDirection(str string) (SortDirection, error) {
 
 func TagExists(r *gogit.Repository, tag string) (bool, error) {
 	tags, err := r.Tags()
-	tag = refPrefix + tag
+	tag = refTagPrefix + tag
 	if err != nil {
 		return false, err
 	}
@@ -220,7 +219,7 @@ func reversedRefsWithPrefix(repo *gogit.Repository, prefix string) ([]SemverRef,
 }
 
 func refsWithPrefix(repo *gogit.Repository, prefix string) ([]SemverRef, error) {
-	tagPrefix := refPrefix + prefix
+	tagPrefix := refTagPrefix + prefix
 	re := regexp.MustCompile("^" + tagPrefix + semVerRegex + "$")
 
 	tagRefs, err := repo.Tags()
@@ -293,4 +292,23 @@ func CurrentVersion(repo *gogit.Repository, prefix string, preRelease PreRelease
 		Version: &preReleaseVersion,
 		Ref:     head,
 	}, nil
+}
+
+func BranchExists(repo *gogit.Repository, branchName string) (bool, error) {
+	branches, err := repo.Branches()
+	if err != nil {
+		return false, err
+	}
+	defer branches.Close()
+	branchExists := false
+	for {
+		branch, err := branches.Next()
+		if err != nil {
+			break
+		}
+		if branch.Name().Short() == branchName {
+			branchExists = true
+		}
+	}
+	return branchExists, nil
 }

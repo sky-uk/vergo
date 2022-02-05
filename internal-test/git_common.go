@@ -9,6 +9,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/storage/memory"
+	"github.com/sky-uk/umc-shared/vergo/git"
 	"github.com/stretchr/testify/assert"
 	"sort"
 	"testing"
@@ -65,20 +66,10 @@ func (t *TestRepo) DoCommit(file string) {
 
 func (t *TestRepo) BranchExists(branchName string) bool {
 	t.t.Helper()
-	branches, err := t.Repo.Branches()
-	assert.Nil(t.t, err)
-	defer branches.Close()
-	branchExists := false
-	for {
-		branch, err := branches.Next()
-		if err != nil {
-			break
-		}
-		if branch.Name().Short() == branchName {
-			branchExists = true
-		}
-	}
-	return branchExists
+	exists, err := git.BranchExists(t.Repo, branchName)
+	assert.NoError(t.t, err)
+	assert.True(t.t, exists)
+	return exists
 }
 
 func NewTestRepo(t *testing.T) TestRepo {

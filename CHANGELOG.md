@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.21.0] - 05-02-2022
+
+`bump` should detect headless checkouts pointing to branches, `check` also should report the same issue
+
+```
+if vergo check release -t service; then
+	version=$(vergo bump minor -t service)
+else
+	#bump would have failed because of some validation
+	#this could be expected for branch builds, in this case push image to test with commit hash as image tag; don't bump/push any git tags
+	version=$(git rev-parse --short HEAD)
+fi
+```
 ## [0.20.0] - 02-11-2021
 
 add capability to check if a release can be skipped

@@ -5,9 +5,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type CheckReleaseFunc func(repo *git.Repository, tagPrefixRaw string) error
+type SkipHintPresentFunc func(repo *git.Repository, tagPrefixRaw string) error
+type ValidateHEADFunc func(repo *git.Repository, versionedBranches []string) error
 
-func CheckCmd(checks []CheckReleaseFunc) *cobra.Command {
+func CheckCmd(skipHintPresent SkipHintPresentFunc, validateHEAD ValidateHEADFunc) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:       "check (release)",
 		Short:     "performs validations",
@@ -24,10 +25,11 @@ func CheckCmd(checks []CheckReleaseFunc) *cobra.Command {
 			}
 
 			var errs errs
-			for _, check := range checks {
-				if err := check(repo, rootFlags.tagPrefixRaw); err != nil {
-					errs = append(errs, err)
-				}
+			if err := skipHintPresent(repo, rootFlags.tagPrefixRaw); err != nil {
+				errs = append(errs, err)
+			}
+			if err := validateHEAD(repo, rootFlags.versionedBranches); err != nil {
+				errs = append(errs, err)
 			}
 			if len(errs) > 0 {
 				return errs

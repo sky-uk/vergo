@@ -21,7 +21,7 @@ func RootCmd() *cobra.Command {
 	rootCmd.PersistentFlags().StringP(repositoryLocation, "l", ".", "repository location")
 	rootCmd.PersistentFlags().String(logLevel, "Info", "set log level")
 	rootCmd.PersistentFlags().Bool(dryRun, false, "dry run")
-	rootCmd.PersistentFlags().StringSlice(versionedBranchNames, []string{"master", "main", "HEAD"},
+	rootCmd.PersistentFlags().StringSlice(versionedBranchNames, []string{"master", "main"},
 		"names of the main working branches")
 	rootCmd.PersistentFlags().BoolP(withPrefix, "p", false, "returns version with prefix")
 	return rootCmd
@@ -89,7 +89,7 @@ func Execute() error {
 	rootCmd.AddCommand(GetCmd(vergo.LatestRef, vergo.PreviousRef, vergo.CurrentVersion))
 	rootCmd.AddCommand(PushCmd())
 	rootCmd.AddCommand(ListCmd(vergo.ListRefs))
-	rootCmd.AddCommand(CheckCmd([]CheckReleaseFunc{release.SkipHintPresent}))
+	rootCmd.AddCommand(CheckCmd(release.SkipHintPresent, release.ValidateHEAD))
 	rootCmd.AddCommand(ShowCmd())
 	rootCmd.AddCommand(VersionCmd())
 	return rootCmd.Execute()

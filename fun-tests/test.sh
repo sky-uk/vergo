@@ -152,6 +152,13 @@ remote_tags=$(git ls-remote --tags origin apple-0.2.0 app-0.1.1 banana-2.0.0 ora
 
 #test headless checkout
 setUp
-git checkout 117443bb0d121fa75bbde8b4c75bfadebf90c954 2>/dev/null 1>&2
-[[ "$(vergo bump minor --tag-prefix=apple --log-level=trace --versioned-branch-names main 2>&1)" == *'command disabled for branches'* ]]
-[[ "$(vergo bump minor --tag-prefix=apple --log-level=trace --versioned-branch-names HEAD 2>&1)" == *'Set tag apple-0.2.0'* ]]
+[[ "$(vergo check release --tag-prefix=apple --log-level=trace --versioned-branch-names main 2>&1)" == *'branch master is not in main branches list: main'* ]]
+[[ "$(vergo bump minor --tag-prefix=apple --log-level=trace --versioned-branch-names main 2>&1)" == *'branch master is not in main branches list: main'* ]]
+
+git checkout 117443bb
+[[ "$(vergo check release --tag-prefix=apple 2>&1)" == *'invalid headless checkout'* ]]
+[[ "$(vergo bump minor --tag-prefix=apple 2>&1)" == *'invalid headless checkout'* ]]
+
+git checkout a54f1f7
+vergo check release --tag-prefix=apple
+[[ "$(vergo bump minor --tag-prefix=apple --log-level=trace 2>&1)" == *'Set tag apple-0.2.0'* ]]

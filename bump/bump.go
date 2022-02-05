@@ -8,11 +8,13 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	log "github.com/sirupsen/logrus"
 	"github.com/sky-uk/umc-shared/vergo/git"
-	"github.com/thoas/go-funk"
+	"github.com/sky-uk/umc-shared/vergo/release"
 	"strings"
 )
 
-var ErrUnknownIncrementor = errors.New("unknown incrementor")
+var (
+	ErrUnknownIncrementor = errors.New("unknown incrementor")
+)
 
 func NextVersion(increment string, version semver.Version) (incrementedVersion semver.Version, err error) {
 	switch strings.ToLower(increment) {
@@ -28,10 +30,6 @@ func NextVersion(increment string, version semver.Version) (incrementedVersion s
 	return
 }
 
-var (
-	ErrBump = errors.New("bump failed")
-)
-
 const firstVersion = "0.1.0"
 
 func Bump(repo *gogit.Repository, tagPrefix, increment string, versionedBranches []string, dryRun bool) (*semver.Version, error) {
@@ -39,10 +37,10 @@ func Bump(repo *gogit.Repository, tagPrefix, increment string, versionedBranches
 	if err != nil {
 		return nil, err
 	}
-	log.Debugf("Current branch:%v, short: %v", head.Name(), head.Name().Short())
-	if !funk.ContainsString(versionedBranches, head.Name().Short()) {
-		return nil, fmt.Errorf("%w : %s", ErrBump, "command disabled for branches")
+	if err := release.ValidateHEAD(repo, versionedBranches); err != nil {
+		return nil, err
 	}
+
 	latest, err := git.LatestRef(repo, tagPrefix)
 	if errors.Is(err, git.ErrNoTagFound) {
 		newVersion, err := semver.NewVersion(firstVersion)

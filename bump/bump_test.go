@@ -20,7 +20,7 @@ const firstVersion = "0.1.0"
 var (
 	prefixes   = []string{"", "app", "application", "app/v"}
 	increments = []string{"patch", "minor", "major"}
-	mainBranch = []string{"master"}
+	mainBranch = []string{"master", "main"}
 )
 
 //nolint:scopelint,paralleltest
@@ -112,30 +112,56 @@ func TestBumpShouldFailWhenNotOnMainBranch(t *testing.T) {
 				branchName := "apple"
 				err := r.Worktree().Checkout(&gogit.CheckoutOptions{Branch: plumbing.NewBranchReferenceName(branchName), Create: true})
 				assert.Nil(t, err)
-				assert.True(t, r.BranchExists(branchName))
+				r.BranchExists(branchName)
 				assert.Equal(t, branchName, r.Head().Name().Short())
-
 				_, err = Bump(r.Repo, prefix, increment, mainBranch, false)
-				assert.Regexp(t, "command disabled for branches", err)
+				assert.Regexp(t, "branch apple is not in main branches list: master, main", err)
 			})
 		}
 	}
 }
 
 //nolint:scopelint,paralleltest
-func TestBumpShouldWorkWhenHeadlessCheckout(t *testing.T) {
-	prefixes := []string{""}
-	increments := []string{"patch"}
+func TestBumpShouldWorkWhenHeadlessCheckoutOfMainBranch(t *testing.T) {
 	for _, prefix := range prefixes {
 		for _, increment := range increments {
 			t.Run(prefix+"-"+increment, func(t *testing.T) {
 				r := NewTestRepo(t)
 				err := r.Worktree().Checkout(&gogit.CheckoutOptions{Hash: r.Head().Hash()})
 				assert.Nil(t, err)
-				assert.Equal(t, "HEAD", r.Head().Name().Short())
+				assert.Equal(t, plumbing.HEAD.String(), r.Head().Name().Short())
 
-				_, err = Bump(r.Repo, prefix, increment, []string{"HEAD"}, false)
+				_, err = Bump(r.Repo, prefix, increment, mainBranch, false)
 				assert.Nil(t, err)
+			})
+		}
+	}
+}
+
+//nolint:scopelint,paralleltest
+func TestBumpShouldNOTWorkWhenHeadlessCheckoutOfOtherBranch(t *testing.T) {
+	for _, prefix := range prefixes {
+		for _, increment := range increments {
+			t.Run(prefix+"-"+increment, func(t *testing.T) {
+				r := NewTestRepo(t)
+				branchName := "apple"
+				err := r.Worktree().Checkout(&gogit.CheckoutOptions{Branch: plumbing.NewBranchReferenceName(branchName), Create: true})
+				assert.Nil(t, err)
+				r.BranchExists(branchName)
+				assert.Equal(t, branchName, r.Head().Name().Short())
+				r.DoCommit("foo")
+				latestHashOnApple := r.Head().Hash()
+
+				err = r.Worktree().Checkout(&gogit.CheckoutOptions{Branch: plumbing.Master})
+				assert.Nil(t, err)
+				assert.Equal(t, plumbing.Master, r.Head().Name())
+
+				err = r.Worktree().Checkout(&gogit.CheckoutOptions{Hash: latestHashOnApple})
+				assert.Nil(t, err)
+				assert.Equal(t, plumbing.HEAD.String(), r.Head().Name().Short())
+
+				_, err = Bump(r.Repo, prefix, increment, mainBranch, false)
+				assert.Regexp(t, "invalid headless checkout", err)
 			})
 		}
 	}
