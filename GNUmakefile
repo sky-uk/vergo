@@ -2,7 +2,7 @@
 
 export
 
-GORELEASER_VERSION := 1.1.0
+GORELEASER_VERSION := 0.179.0
 LINTER_VERSION := 1.43.0
 UPLOAD_TARGET=https://nexus.api.bskyb.com/nexus/content/repositories/nova-packages
 PATH := $(shell pwd)/bin:$(PATH)
@@ -32,14 +32,7 @@ bin/golangci-lint: bin
 bin/goreleaser: bin
 	@test -f $@ ||
 	(
-		case `uname` in
-		Darwin)
-			curl -fsL https://github.com/goreleaser/goreleaser/releases/download/v${GORELEASER_VERSION}/goreleaser_Darwin_all.tar.gz -o goreleaser.tgz
-			;;
-		Linux)
-			curl -fsL https://github.com/goreleaser/goreleaser/releases/download/v${GORELEASER_VERSION}/goreleaser_Linux_x86_64.tar.gz -o goreleaser.tgz
-			;;
-		esac
+		curl -fsL https://github.com/goreleaser/goreleaser/releases/download/v${GORELEASER_VERSION}/goreleaser_`uname`_x86_64.tar.gz -o goreleaser.tgz
 		tar xvf goreleaser.tgz -C bin goreleaser
 		rm goreleaser.tgz
 		bin/goreleaser --version
