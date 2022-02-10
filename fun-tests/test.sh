@@ -25,6 +25,18 @@ setUp() {
   [[ "$(git tag -l apple-0.2.0 app-0.1.1 banana-2.0.0 orange/v3.0.0)" == "" ]]
 }
 
+setUpLikeCI() {
+  cd /tmp
+  rm -rf /tmp/vergo-test-repo /tmp/vergo-test-repo-clone || true
+  git init /tmp/vergo-test-repo
+  git -C /tmp/vergo-test-repo fetch --tags -- git@github.com:sky-uk/vergo-test-repo.git +refs/heads/*:refs/remotes/origin/*
+  git -C /tmp/vergo-test-repo checkout "$(git -C /tmp/vergo-test-repo show-ref --hash refs/remotes/origin/master)"
+  git -C /tmp/vergo-test-repo config remote.origin.url git@github.com:sky-uk/vergo-test-repo.git
+
+  cd /tmp/vergo-test-repo
+  [[ "$(git tag -l apple-0.2.0 app-0.1.1 banana-2.0.0 orange/v3.0.0)" == "" ]]
+}
+
 readonly head="$(git rev-parse HEAD)"
 readonly headShort="$(git rev-parse --short HEAD)"
 readonly vergoVersion="$(vergo version simple)"
@@ -151,14 +163,18 @@ remote_tags=$(git ls-remote --tags origin apple-0.2.0 app-0.1.1 banana-2.0.0 ora
 [[ "${remote_tags}" == *'refs/tags/orange/v3.0.0'* ]]
 
 #test headless checkout
-setUp
-[[ "$(vergo check release --tag-prefix=apple --log-level=trace --versioned-branch-names main 2>&1)" == *'branch master is not in main branches list: main'* ]]
-[[ "$(vergo bump minor --tag-prefix=apple --log-level=trace --versioned-branch-names main 2>&1)" == *'branch master is not in main branches list: main'* ]]
+setUpLikeCI
 
+[[ "$(git branch -l | grep -v HEAD)" == "" ]] #make sure no local branch
 git checkout 117443bb
 [[ "$(vergo check release --tag-prefix=apple 2>&1)" == *'invalid headless checkout'* ]]
 [[ "$(vergo bump minor --tag-prefix=apple 2>&1)" == *'invalid headless checkout'* ]]
 
+[[ "$(git branch -l | grep -v HEAD)" == "" ]] #make sure no local branch
 git checkout a54f1f7
 vergo check release --tag-prefix=apple
 [[ "$(vergo bump minor --tag-prefix=apple --log-level=trace 2>&1)" == *'Set tag apple-0.2.0'* ]]
+
+git checkout origin/master -b master #create local branch
+[[ "$(vergo check release --tag-prefix=apple --log-level=trace --versioned-branch-names main 2>&1)" == *'branch master is not in main branches list: main'* ]]
+[[ "$(vergo bump minor --tag-prefix=apple --log-level=trace --versioned-branch-names main 2>&1)" == *'branch master is not in main branches list: main'* ]]

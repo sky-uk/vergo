@@ -13,6 +13,7 @@ var (
 	prefixes   = []string{"", "app", "application", "app/v"}
 	increments = []string{"patch", "minor", "major"}
 	mainBranch = []string{"master", "main"}
+	remoteName = "origin"
 )
 
 //nolint:scopelint,paralleltest
@@ -66,7 +67,7 @@ func TestShouldFailWhenNotOnMainBranch(t *testing.T) {
 				assert.Nil(t, err)
 				r.BranchExists(branchName)
 				assert.Equal(t, branchName, r.Head().Name().Short())
-				err = release.ValidateHEAD(r.Repo, mainBranch)
+				err = release.ValidateHEAD(r.Repo, remoteName, mainBranch)
 				assert.Regexp(t, "branch apple is not in main branches list: master, main", err)
 			})
 		}
@@ -83,7 +84,7 @@ func TestShouldWorkWhenHeadlessCheckoutOfMainBranch(t *testing.T) {
 				assert.Nil(t, err)
 				assert.Equal(t, plumbing.HEAD.String(), r.Head().Name().Short())
 
-				err = release.ValidateHEAD(r.Repo, mainBranch)
+				err = release.ValidateHEAD(r.Repo, remoteName, mainBranch)
 				assert.Nil(t, err)
 			})
 		}
@@ -112,7 +113,7 @@ func TestShouldNOTWorkWhenHeadlessCheckoutOfOtherBranch(t *testing.T) {
 				assert.Nil(t, err)
 				assert.Equal(t, plumbing.HEAD.String(), r.Head().Name().Short())
 
-				err = release.ValidateHEAD(r.Repo, mainBranch)
+				err = release.ValidateHEAD(r.Repo, remoteName, mainBranch)
 				assert.Regexp(t, "invalid headless checkout", err)
 			})
 		}
