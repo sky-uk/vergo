@@ -6,7 +6,7 @@ import (
 )
 
 type SkipHintPresentFunc func(repo *git.Repository, tagPrefixRaw string) error
-type ValidateHEADFunc func(repo *git.Repository, versionedBranches []string) error
+type ValidateHEADFunc func(repo *git.Repository, remoteName string, versionedBranches []string) error
 
 func CheckCmd(skipHintPresent SkipHintPresentFunc, validateHEAD ValidateHEADFunc) *cobra.Command {
 	cmd := &cobra.Command{
@@ -28,7 +28,7 @@ func CheckCmd(skipHintPresent SkipHintPresentFunc, validateHEAD ValidateHEADFunc
 			if err := skipHintPresent(repo, rootFlags.tagPrefixRaw); err != nil {
 				errs = append(errs, err)
 			}
-			if err := validateHEAD(repo, rootFlags.versionedBranches); err != nil {
+			if err := validateHEAD(repo, rootFlags.remote, rootFlags.versionedBranches); err != nil {
 				errs = append(errs, err)
 			}
 			if len(errs) > 0 {

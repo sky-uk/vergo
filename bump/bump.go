@@ -30,14 +30,17 @@ func NextVersion(increment string, version semver.Version) (incrementedVersion s
 	return
 }
 
-const firstVersion = "0.1.0"
+const (
+	firstVersion  = "0.1.0"
+	defaultRemote = "origin"
+)
 
 func Bump(repo *gogit.Repository, tagPrefix, increment string, versionedBranches []string, dryRun bool) (*semver.Version, error) {
 	head, err := repo.Head()
 	if err != nil {
 		return nil, err
 	}
-	if err := release.ValidateHEAD(repo, versionedBranches); err != nil {
+	if err := release.ValidateHEAD(repo, defaultRemote, versionedBranches); err != nil {
 		return nil, err
 	}
 

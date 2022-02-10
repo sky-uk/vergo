@@ -44,12 +44,3 @@ func TestCheckReleaseInvalidHeadless(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Equal(t, "Error: invalid headless checkout\n", readBuffer(t, buffer))
 }
-
-func TestCheckReleaseUnexpectedBranch(t *testing.T) {
-	_, tempDir := PersistentRepository(t)
-	cmd, buffer := makeCheckFail(t, success, release.ErrUnexpectedBranch)
-	cmd.SetArgs([]string{"check", "release", "--repository-location", tempDir, "-t", "some-prefix", "--log-level", "error", "-p"})
-	err := cmd.Execute()
-	assert.NotNil(t, err)
-	assert.Equal(t, "Error: unexpected branch\n", readBuffer(t, buffer))
-}

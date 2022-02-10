@@ -35,7 +35,7 @@ func checkReleaseDependencies(t *testing.T, err1 error, err2 error) (SkipHintPre
 	t.Helper()
 	return func(repo *git.Repository, tagPrefixRaw string) error {
 			return err1
-		}, func(repo *git.Repository, versionedBranches []string) error {
+		}, func(repo *git.Repository, remote string, versionedBranches []string) error {
 			return err2
 		}
 }
