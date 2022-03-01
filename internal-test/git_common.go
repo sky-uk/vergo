@@ -80,6 +80,16 @@ func NewTestRepo(t *testing.T) TestRepo {
 	}
 }
 
+func NewEmptyTestRepo(t *testing.T) TestRepo {
+	t.Helper()
+	r, err := gogit.Init(memory.NewStorage(), memfs.New())
+	assert.Nil(t, err)
+	return TestRepo{
+		t:    t,
+		Repo: r,
+	}
+}
+
 func inMemoryRepositoryWithDefaultCommit(t *testing.T) *gogit.Repository {
 	t.Helper()
 	r, err := gogit.Init(memory.NewStorage(), memfs.New())

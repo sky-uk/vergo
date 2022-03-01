@@ -89,7 +89,7 @@ func Execute() error {
 	rootCmd.AddCommand(GetCmd(vergo.LatestRef, vergo.PreviousRef, vergo.CurrentVersion))
 	rootCmd.AddCommand(PushCmd())
 	rootCmd.AddCommand(ListCmd(vergo.ListRefs))
-	rootCmd.AddCommand(CheckCmd(release.SkipHintPresent, release.ValidateHEAD))
+	rootCmd.AddCommand(CheckCmd(release.SkipHintPresent, release.ValidateHEAD, release.IncrementHint))
 	rootCmd.AddCommand(ShowCmd())
 	rootCmd.AddCommand(VersionCmd())
 	return rootCmd.Execute()

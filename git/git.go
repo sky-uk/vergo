@@ -37,6 +37,7 @@ var (
 	ErrOneTagFound          = errors.New("one tag found")
 	ErrInvalidSortDirection = errors.New("invalid sort direction")
 	ErrPreReleaseVersion    = errors.New("invalid preReleaseVersion")
+	ErrUndefinedSSHAuthSock = errors.New("SSH_AUTH_SOCK is not defined")
 )
 
 func ParseSortDirection(str string) (SortDirection, error) {
@@ -105,8 +106,18 @@ func CreateTag(repo *gogit.Repository, version, prefix string, dryRun bool) erro
 	return CreateTagWithMessage(repo, version, prefix, "", nil, dryRun)
 }
 
-func PushTag(r *gogit.Repository, socket, version, prefix, remote string, dryRun bool) error {
+type PushTagFunc func(
+	repo *gogit.Repository,
+	version, prefix, remote string,
+	dryRun bool) error
+
+func PushTag(r *gogit.Repository, version, prefix, remote string, dryRun bool) error {
 	tag := prefix + version
+
+	socket, found := os.LookupEnv("SSH_AUTH_SOCK")
+	if !found {
+		return ErrUndefinedSSHAuthSock
+	}
 
 	conn, err := net.Dial("unix", socket)
 	if err != nil {

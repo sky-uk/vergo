@@ -1,15 +1,21 @@
 package cmd_test
 
 import (
+	"fmt"
+	"github.com/sky-uk/umc-shared/vergo/bump"
 	. "github.com/sky-uk/umc-shared/vergo/internal-test"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
 )
 
+var (
+	prefixes   = []string{"", "app", "application", "app/v"}
+	increments = []string{"patch", "minor", "major"}
+)
+
 //nolint:scopelint,paralleltest
 func TestBumpShouldWorkWithIncrements(t *testing.T) {
-	increments := []string{"patch", "minor", "major"}
 	for _, increment := range increments {
 		t.Run(increment, func(t *testing.T) {
 			_, tempDir := PersistentRepository(t)
@@ -23,8 +29,42 @@ func TestBumpShouldWorkWithIncrements(t *testing.T) {
 }
 
 //nolint:scopelint,paralleltest
+func TestBumpShouldWorkWithAutoIncrement(t *testing.T) {
+	nextVersion := []string{"0.1.1", "0.2.0", "1.0.0"}
+	for _, prefix := range prefixes {
+		for i, increment := range increments {
+			t.Run(prefix+"-"+increment, func(t *testing.T) {
+				repo, tempDir := PersistentRepository(t)
+
+				{
+					DoCommit(t, repo, "init")
+					cmd, buffer := makeBumpFunc(t, bump.Bump)
+					cmd.SetArgs([]string{"bump", increment, "--repository-location", tempDir, "-t", prefix})
+					err := cmd.Execute()
+					assert.Nil(t, err)
+					assert.Equal(t, "0.1.0", readBuffer(t, buffer))
+				}
+
+				{
+					if prefix == "" {
+						DoCommitWithMessage(t, repo, "some file", fmt.Sprintf("vergo:%s-release", increment))
+					} else {
+						DoCommitWithMessage(t, repo, "some file", fmt.Sprintf("vergo:%s:%s-release", prefix, increment))
+					}
+
+					cmd, buffer := makeBumpFunc(t, bump.Bump)
+					cmd.SetArgs([]string{"bump", "auto", "--repository-location", tempDir, "-t", prefix})
+					err := cmd.Execute()
+					assert.Nil(t, err)
+					assert.Equal(t, nextVersion[i], readBuffer(t, buffer))
+				}
+			})
+		}
+	}
+}
+
+//nolint:scopelint,paralleltest
 func TestBumpShouldWorkWithIncrementsAndPrefix(t *testing.T) {
-	increments := []string{"patch", "minor", "major"}
 	for _, increment := range increments {
 		t.Run(increment, func(t *testing.T) {
 			_, tempDir := PersistentRepository(t)
@@ -38,7 +78,6 @@ func TestBumpShouldWorkWithIncrementsAndPrefix(t *testing.T) {
 }
 
 func TestBumpShouldWorkWithIncrementsAndSlashPrefix(t *testing.T) {
-	increments := []string{"patch", "minor", "major"}
 	for _, increment := range increments {
 		t.Run(increment, func(t *testing.T) {
 			_, tempDir := PersistentRepository(t)

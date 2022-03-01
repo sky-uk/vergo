@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.22.0] - 10-03-2022
+add ability extract release directives from the last commit message
+e.g. : `vergo bump auto -t app` will look for patch/minor/major in commit message
+if the commit message includes `[vergo:app:major-release]` string then auto will be translated to `major` 
+
 ## [0.21.0] - 05-02-2022
 
 `bump` should detect headless checkouts pointing to branches, `check` also should report the same issue

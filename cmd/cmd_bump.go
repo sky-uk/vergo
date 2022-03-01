@@ -1,29 +1,20 @@
 package cmd
 
 import (
-	"github.com/Masterminds/semver/v3"
 	"github.com/go-git/go-git/v5"
 	log "github.com/sirupsen/logrus"
+	"github.com/sky-uk/umc-shared/vergo/bump"
+	vergo "github.com/sky-uk/umc-shared/vergo/git"
+	"github.com/sky-uk/umc-shared/vergo/release"
 	"github.com/spf13/cobra"
 )
 
-type BumpFunc func(
-	repo *git.Repository,
-	tagPrefix, increment string,
-	versionedBranches []string,
-	dryRun bool) (*semver.Version, error)
-
-type PushTagFunc func(
-	repo *git.Repository,
-	socket, version, prefix, remote string,
-	dryRun bool) error
-
-func BumpCmd(bump BumpFunc, pushTag PushTagFunc) *cobra.Command {
+func BumpCmd(bump bump.BumpFunc, pushTag vergo.PushTagFunc) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:       "release (patch|minor|major)",
+		Use:       "release (patch|minor|major|auto)",
 		Short:     "increments the version numbers",
 		Args:      cobra.ExactValidArgs(1),
-		ValidArgs: []string{"patch", "minor", "major"},
+		ValidArgs: []string{"patch", "minor", "major", "auto"},
 		Aliases:   []string{"bump"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			increment := args[0]
@@ -35,20 +26,24 @@ func BumpCmd(bump BumpFunc, pushTag PushTagFunc) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			socket, err := checkAuthSocket(pushTagParam)
-			if err != nil {
-				return err
-			}
 			repo, err := git.PlainOpenWithOptions(rootFlags.repositoryLocation, &git.PlainOpenOptions{DetectDotGit: true})
 			if err != nil {
 				return err
+			}
+			if err := release.SkipHintPresent(repo, rootFlags.tagPrefixRaw); err != nil {
+				return err
+			}
+			if increment == "auto" {
+				if increment, err = release.IncrementHint(repo, rootFlags.tagPrefixRaw); err != nil {
+					return err
+				}
 			}
 			version, err := bump(repo, rootFlags.tagPrefix, increment, rootFlags.versionedBranches, rootFlags.dryRun)
 			if err != nil {
 				return err
 			}
 			if pushTagParam {
-				err = pushTag(repo, socket, version.String(), rootFlags.tagPrefix, rootFlags.remote, rootFlags.dryRun)
+				err = pushTag(repo, version.String(), rootFlags.tagPrefix, rootFlags.remote, rootFlags.dryRun)
 				if err != nil {
 					return err
 				}

@@ -36,6 +36,13 @@ func TestShouldVerifySkipReleaseHint(t *testing.T) {
 				"@vergo:app:skip-release@ doc update",
 			},
 		},
+		{
+			tagPrefix: "app/v",
+			messages: []string{
+				"[vergo:app/v:skip-release] doc update",
+				"@vergo:app/v:skip-release@ doc update",
+			},
+		},
 	}
 	for _, testCase := range testCases {
 		for _, message := range testCase.messages {
@@ -53,6 +60,88 @@ func TestShouldVerifySkipReleaseHint(t *testing.T) {
 				assert.ErrorIs(t, release.SkipHintPresent(r.Repo, testCase.tagPrefix), release.ErrSkipRelease)
 			})
 		}
+	}
+}
+
+//nolint:scopelint,paralleltest
+func TestShouldExtractReleaseIncrementHint(t *testing.T) {
+	type testData struct {
+		message, increment string
+	}
+
+	testCases := []struct {
+		tagPrefix string
+		test      []testData
+	}{
+		{
+			tagPrefix: "",
+			test: []testData{
+				{"[vergo:major-release] doc update", "major"},
+				{"@vergo:major-release@ doc update", "major"},
+				{"[vergo:minor-release] doc update", "minor"},
+				{"@vergo:minor-release@ doc update", "minor"},
+				{"[vergo:patch-release] doc update", "patch"},
+				{"@vergo:patch-release@ doc update", "patch"},
+			},
+		},
+		{
+			tagPrefix: "app",
+			test: []testData{
+				{"[vergo:app:major-release] doc update", "major"},
+				{"@vergo:app:major-release@ doc update", "major"},
+				{"[vergo:app:minor-release] doc update", "minor"},
+				{"@vergo:app:minor-release@ doc update", "minor"},
+				{"[vergo:app:patch-release] doc update", "patch"},
+				{"@vergo:app:patch-release@ doc update", "patch"},
+			},
+		},
+		{
+			tagPrefix: "app/v",
+			test: []testData{
+				{"[vergo:app/v:major-release] doc update", "major"},
+				{"@vergo:app/v:major-release@ doc update", "major"},
+				{"[vergo:app/v:minor-release] doc update", "minor"},
+				{"@vergo:app/v:minor-release@ doc update", "minor"},
+				{"[vergo:app/v:patch-release] doc update", "patch"},
+				{"@vergo:app/v:patch-release@ doc update", "patch"},
+			},
+		},
+	}
+	for _, testCase := range testCases {
+		for _, test := range testCase.test {
+			t.Run(testCase.tagPrefix+test.message, func(t *testing.T) {
+				r := NewTestRepo(t)
+				_, err := release.IncrementHint(r.Repo, testCase.tagPrefix)
+				assert.ErrorIs(t, err, release.ErrNoIncrement)
+
+				DoCommitWithMessage(t, r.Repo, "some content 1", test.message)
+				increment, err := release.IncrementHint(r.Repo, testCase.tagPrefix)
+				assert.NoError(t, err)
+				assert.Equal(t, test.increment, increment)
+			})
+		}
+	}
+}
+
+//nolint:scopelint,paralleltest
+func TestShouldVerifySkipReleaseHintInEmptyRepo(t *testing.T) {
+	for _, prefix := range prefixes {
+		t.Run(prefix, func(t *testing.T) {
+			r := NewEmptyTestRepo(t)
+			assert.Nil(t, release.SkipHintPresent(r.Repo, prefix))
+		})
+	}
+}
+
+//nolint:scopelint,paralleltest
+func TestShouldNotExtractReleaseIncrementHint(t *testing.T) {
+	for _, prefix := range prefixes {
+		t.Run(prefix, func(t *testing.T) {
+			r := NewEmptyTestRepo(t)
+			increment, err := release.IncrementHint(r.Repo, prefix)
+			assert.NoError(t, err)
+			assert.Equal(t, "minor", increment)
+		})
 	}
 }
 

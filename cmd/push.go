@@ -16,10 +16,6 @@ func PushCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			socket, err := checkAuthSocket(true)
-			if err != nil {
-				return err
-			}
 			repo, err := git.PlainOpenWithOptions(rootFlags.repositoryLocation, &git.PlainOpenOptions{DetectDotGit: true})
 			if err != nil {
 				return err
@@ -28,7 +24,7 @@ func PushCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			err = vergo.PushTag(repo, socket, ref.Version.String(), rootFlags.tagPrefix, rootFlags.remote, rootFlags.dryRun)
+			err = vergo.PushTag(repo, ref.Version.String(), rootFlags.tagPrefix, rootFlags.remote, rootFlags.dryRun)
 			if err != nil {
 				return err
 			}

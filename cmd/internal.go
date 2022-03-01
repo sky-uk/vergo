@@ -2,13 +2,11 @@ package cmd
 
 import (
 	"errors"
-	"os"
 	"strings"
 )
 
 var (
-	ErrInvalidArg           = errors.New("invalid arg")
-	ErrUndefinedSSHAuthSock = errors.New("SSH_AUTH_SOCK is not defined")
+	ErrInvalidArg = errors.New("invalid arg")
 )
 
 func sanitiseTagPrefix(tagPrefix string) string {
@@ -24,12 +22,4 @@ func sanitiseTagPrefix(tagPrefix string) string {
 	default:
 		return tagPrefix + "-"
 	}
-}
-
-func checkAuthSocket(pushTag bool) (string, error) {
-	socket, found := os.LookupEnv("SSH_AUTH_SOCK")
-	if pushTag && !found {
-		return "", ErrUndefinedSSHAuthSock
-	}
-	return socket, nil
 }

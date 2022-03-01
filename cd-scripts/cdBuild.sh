@@ -1,3 +1,3 @@
 #!/bin/bash -e
 
-(cd vergo && make test)
+(cd vergo && make release-test test)

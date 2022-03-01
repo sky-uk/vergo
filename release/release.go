@@ -12,8 +12,10 @@ import (
 )
 
 var (
+	ErrNoIncrement     = errors.New("increment hint not present")
 	ErrSkipRelease     = errors.New("skip release hint present")
-	ErrInvalidHeadless = errors.New("invalid headless checkout")
+	ErrHEADValidation  = errors.New("HEAD validation")
+	ErrInvalidHeadless = fmt.Errorf("%w: %s", ErrHEADValidation, "invalid headless checkout")
 )
 
 func checkSkipHint(aString, tagPrefix string) bool {
@@ -23,9 +25,14 @@ func checkSkipHint(aString, tagPrefix string) bool {
 	return regexp.MustCompile("vergo:" + tagPrefix + ":skip-release").MatchString(aString)
 }
 
+type SkipHintPresentFunc func(repo *gogit.Repository, tagPrefixRaw string) error
+
 func SkipHintPresent(repo *gogit.Repository, tagPrefixRaw string) error {
 	head, err := repo.Head()
-	if err != nil {
+	switch {
+	case errors.Is(err, plumbing.ErrReferenceNotFound):
+		return nil
+	case err != nil:
 		return err
 	}
 	commit, err := repo.CommitObject(head.Hash())
@@ -37,6 +44,39 @@ func SkipHintPresent(repo *gogit.Repository, tagPrefixRaw string) error {
 	}
 	return nil
 }
+
+func checkIncrementHint(aString, tagPrefixRaw string) (string, error) {
+	var re *regexp.Regexp
+	if tagPrefixRaw == "" {
+		re = regexp.MustCompile("vergo:(major|minor|patch)-release")
+	} else {
+		re = regexp.MustCompile("vergo:" + tagPrefixRaw + ":(major|minor|patch)-release")
+	}
+	match := re.FindStringSubmatch(aString)
+	if len(match) != 2 {
+		return "", fmt.Errorf("%w: %s", ErrNoIncrement, tagPrefixRaw)
+	}
+	return match[1], nil
+}
+
+type IncrementHintFunc func(repo *gogit.Repository, tagPrefixRaw string) (string, error)
+
+func IncrementHint(repo *gogit.Repository, tagPrefixRaw string) (string, error) {
+	head, err := repo.Head()
+	switch {
+	case errors.Is(err, plumbing.ErrReferenceNotFound):
+		return "minor", nil
+	case err != nil:
+		return "", err
+	}
+	commit, err := repo.CommitObject(head.Hash())
+	if err != nil {
+		return "", err
+	}
+	return checkIncrementHint(commit.Message, tagPrefixRaw)
+}
+
+type ValidateHEADFunc func(repo *gogit.Repository, remoteName string, versionedBranches []string) error
 
 func ValidateHEAD(repo *gogit.Repository, remoteName string, versionedBranches []string) error {
 	head, err := repo.Head()
@@ -74,7 +114,8 @@ func ValidateHEAD(repo *gogit.Repository, remoteName string, versionedBranches [
 			return ErrInvalidHeadless
 		}
 	} else if !funk.ContainsString(versionedBranches, head.Name().Short()) {
-		return fmt.Errorf("branch %s is not in main branches list: %s", head.Name().Short(), strings.Join(versionedBranches, ", "))
+		return fmt.Errorf("%w: branch %s is not in main branches list: %s", ErrHEADValidation,
+			head.Name().Short(), strings.Join(versionedBranches, ", "))
 	}
 	return nil
 }

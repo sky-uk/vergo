@@ -35,6 +35,12 @@ const (
 	defaultRemote = "origin"
 )
 
+type BumpFunc func(
+	repo *gogit.Repository,
+	tagPrefix, increment string,
+	versionedBranches []string,
+	dryRun bool) (*semver.Version, error)
+
 func Bump(repo *gogit.Repository, tagPrefix, increment string, versionedBranches []string, dryRun bool) (*semver.Version, error) {
 	head, err := repo.Head()
 	if err != nil {

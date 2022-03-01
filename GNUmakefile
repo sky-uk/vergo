@@ -45,9 +45,12 @@ pre-check: tools
 	go vet ./...
 	golangci-lint run ./...
 
+release-test: build
+	bin/vergo check increment-hint --tag-prefix vergo
+
 release: build
 	bin/vergo check release --tag-prefix vergo || exit 0
-	bin/vergo bump minor --tag-prefix vergo
+	bin/vergo bump auto --tag-prefix vergo
 	BUILT_BY="`goreleaser --version | head -n1`, `go version`" \
 	GORELEASER_CURRENT_TAG=`bin/vergo get latest-release --tag-prefix vergo -p` \
 	GORELEASER_PREVIOUS_TAG=`bin/vergo get previous-release --tag-prefix vergo -p` \
@@ -73,5 +76,5 @@ build: pre-check
 	@cp dist/vergo_`uname | tr A-Z a-z`_amd64/vergo bin/vergo
 	@cp dist/vergo_`uname | tr A-Z a-z`_amd64/vergo /usr/local/bin/vergo 2>/dev/null || true
 
-extended-linter: pre-check
-	golangci-lint run --enable-all --disable wrapcheck,nlreturn,exhaustivestruct,wsl,gofumpt,gci ./...
+dependency-updates:
+	@go list -u -f '{{if (and (not (or .Main .Indirect)) .Update)}}{{.Path}}: {{.Version}} -> {{.Update.Version}}{{end}}' -m all
