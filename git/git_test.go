@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"github.com/Masterminds/semver/v3"
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/sky-uk/umc-shared/vergo/bump"
 	. "github.com/sky-uk/umc-shared/vergo/git"
 	. "github.com/sky-uk/umc-shared/vergo/internal-test"
+	"github.com/sky-uk/umc-shared/vergo/release"
 	"github.com/stretchr/testify/assert"
 	"github.com/thoas/go-funk"
 	"go.uber.org/atomic"
@@ -301,6 +303,28 @@ func TestCurrentVersionNoTagOnTheHead(t *testing.T) {
 }
 
 //nolint:scopelint,paralleltest
+func TestCurrentVersionNoHead(t *testing.T) {
+	for _, prefix := range prefixes {
+		t.Run(prefix, func(t *testing.T) {
+			r := NewEmptyTestRepo(t)
+			_, err := CurrentVersion(r.Repo, prefix, dontNeedPreRelease)
+			assert.ErrorIs(t, err, plumbing.ErrReferenceNotFound)
+		})
+	}
+}
+
+//nolint:scopelint,paralleltest
+func TestCurrentVersionNoTag(t *testing.T) {
+	for _, prefix := range prefixes {
+		t.Run(prefix, func(t *testing.T) {
+			r := NewTestRepo(t)
+			_, err := CurrentVersion(r.Repo, prefix, dontNeedPreRelease)
+			assert.ErrorIs(t, err, ErrNoTagFound)
+		})
+	}
+}
+
+//nolint:scopelint,paralleltest
 func TestCurrentVersionWithCheckoutOlderRelease(t *testing.T) {
 	for _, prefix := range prefixes {
 		t.Run(prefix, func(t *testing.T) {
@@ -376,7 +400,7 @@ func TestCurrentVersionWithAnnotatedTags(t *testing.T) {
 //nolint:scopelint,paralleltest
 func TestCurrentVersionNoTagOnTheHeadInvalidPrerelease(t *testing.T) {
 	preReleases := []struct {
-		fn    PreRelease
+		fn    release.PreReleaseFunc
 		error string
 	}{
 		{
@@ -428,10 +452,10 @@ func TestList(t *testing.T) {
 	for _, prefix := range prefixes {
 		t.Run(prefix, func(t *testing.T) {
 			r := NewTestRepo(t)
-			_, err := bump.Bump(r.Repo, prefix, "minor", mainBranch, false)
+			_, err := bump.Bump(r.Repo, "minor", bump.Options{TagPrefix: prefix, VersionedBranches: mainBranch})
 			assert.Nil(t, err)
 			r.DoCommit("jo")
-			_, err = bump.Bump(r.Repo, prefix, "minor", mainBranch, false)
+			_, err = bump.Bump(r.Repo, "minor", bump.Options{TagPrefix: prefix, VersionedBranches: mainBranch})
 			assert.Nil(t, err)
 			getSemver := func(ref SemverRef) string { return ref.Version.String() }
 

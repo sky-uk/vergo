@@ -3,6 +3,7 @@ package release
 import (
 	"errors"
 	"fmt"
+	"github.com/Masterminds/semver/v3"
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	log "github.com/sirupsen/logrus"
@@ -118,4 +119,26 @@ func ValidateHEAD(repo *gogit.Repository, remoteName string, versionedBranches [
 			head.Name().Short(), strings.Join(versionedBranches, ", "))
 	}
 	return nil
+}
+
+type PreReleaseFunc func(version *semver.Version) (semver.Version, error)
+type PreReleaseOptions struct {
+	WithMetadata bool
+}
+
+func PreRelease(repo *gogit.Repository, options PreReleaseOptions) PreReleaseFunc {
+	return func(version *semver.Version) (semver.Version, error) {
+		pre, err := version.IncMinor().SetPrerelease("SNAPSHOT")
+		if err != nil {
+			return semver.Version{}, err
+		}
+		if options.WithMetadata {
+			head, err := repo.Head()
+			if err != nil {
+				return semver.Version{}, err
+			}
+			return pre.SetMetadata(head.Hash().String()[0:7])
+		}
+		return pre, nil
+	}
 }

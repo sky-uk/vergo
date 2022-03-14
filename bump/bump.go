@@ -31,33 +31,35 @@ func NextVersion(increment string, version semver.Version) (incrementedVersion s
 }
 
 const (
-	firstVersion  = "0.1.0"
-	defaultRemote = "origin"
+	firstVersion = "0.1.0"
 )
 
-type BumpFunc func(
-	repo *gogit.Repository,
-	tagPrefix, increment string,
-	versionedBranches []string,
-	dryRun bool) (*semver.Version, error)
+type Options struct {
+	TagPrefix         string
+	Remote            string
+	VersionedBranches []string
+	DryRun            bool
+}
 
-func Bump(repo *gogit.Repository, tagPrefix, increment string, versionedBranches []string, dryRun bool) (*semver.Version, error) {
+type Func func(repo *gogit.Repository, increment string, options Options) (*semver.Version, error)
+
+func Bump(repo *gogit.Repository, increment string, options Options) (*semver.Version, error) {
 	head, err := repo.Head()
 	if err != nil {
 		return nil, err
 	}
-	if err := release.ValidateHEAD(repo, defaultRemote, versionedBranches); err != nil {
+	if err := release.ValidateHEAD(repo, options.Remote, options.VersionedBranches); err != nil {
 		return nil, err
 	}
 
-	latest, err := git.LatestRef(repo, tagPrefix)
+	latest, err := git.LatestRef(repo, options.TagPrefix)
 	if errors.Is(err, git.ErrNoTagFound) {
 		newVersion, err := semver.NewVersion(firstVersion)
 		if err != nil {
 			return nil, err
 		}
-		if err := git.CreateTag(repo, newVersion.String(), tagPrefix, dryRun); err != nil {
-			log.WithError(err).Errorln("Failed to create tag", tagPrefix, newVersion.String())
+		if err := git.CreateTag(repo, newVersion.String(), options.TagPrefix, options.DryRun); err != nil {
+			log.WithError(err).Errorln("Failed to create tag", options.TagPrefix, newVersion.String())
 			return nil, err
 		}
 		return newVersion, nil
@@ -78,7 +80,7 @@ func Bump(repo *gogit.Repository, tagPrefix, increment string, versionedBranches
 	if err != nil {
 		return nil, err
 	}
-	if err := git.CreateTag(repo, newVersion.String(), tagPrefix, dryRun); err != nil {
+	if err := git.CreateTag(repo, newVersion.String(), options.TagPrefix, options.DryRun); err != nil {
 		return nil, err
 	}
 	return &newVersion, nil

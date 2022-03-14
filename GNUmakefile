@@ -64,6 +64,7 @@ unit-tests: pre-check
 fun-tests: build
 	./fun-tests/test.sh
 	./fun-tests/test-bump-auto.sh
+	./fun-tests/test-empty-repo.sh
 
 test: build unit-tests fun-tests
 test-compile:

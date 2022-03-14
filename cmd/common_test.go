@@ -18,9 +18,9 @@ import (
 
 var success error = nil
 
-func bumpSuccess(t *testing.T) bump.BumpFunc {
+func bumpSuccess(t *testing.T) bump.Func {
 	t.Helper()
-	return func(repo *git.Repository, tagPrefix, increment string, versionedBranches []string, dryRun bool) (*semver.Version, error) {
+	return func(_ *git.Repository, _ string, _ bump.Options) (*semver.Version, error) {
 		return NewVersionT(t, "0.1.0"), nil
 	}
 }
@@ -58,7 +58,7 @@ func makeBump(t *testing.T) (*cobra.Command, *bytes.Buffer) {
 	return cmd, b
 }
 
-func makeBumpFunc(t *testing.T, bump bump.BumpFunc) (*cobra.Command, *bytes.Buffer) {
+func makeBumpFunc(t *testing.T, bump bump.Func) (*cobra.Command, *bytes.Buffer) {
 	t.Helper()
 	cmd := RootCmd()
 	cmd.AddCommand(BumpCmd(bump, mockPushTagSuccess))
@@ -98,22 +98,18 @@ func makeCheckFail(t *testing.T, skipHintPresentErr error, validateHEADErr error
 	return cmd, b
 }
 
-func makeGet(t *testing.T) (*cobra.Command, *bytes.Buffer) {
+func makeGet(t *testing.T, current vergo.CurrentVersionFunc) (*cobra.Command, *bytes.Buffer) {
 	t.Helper()
 	latest := func(repo *git.Repository, prefix string) (vergo.SemverRef, error) {
-		return vergo.SemverRef{
-			Version: NewVersionT(t, "0.1.0"),
-		}, nil
+		return vergo.SemverRef{Version: NewVersionT(t, "0.1.0")}, nil
 	}
 	previous := func(repo *git.Repository, prefix string) (vergo.SemverRef, error) {
-		return vergo.SemverRef{
-			Version: NewVersionT(t, "0.1.0"),
-		}, nil
+		return vergo.SemverRef{Version: NewVersionT(t, "0.1.0")}, nil
 	}
-	current := func(repo *git.Repository, prefix string, preRelease vergo.PreRelease) (vergo.SemverRef, error) {
-		return vergo.SemverRef{
-			Version: NewVersionT(t, "0.1.0"),
-		}, nil
+	if current == nil {
+		current = func(repo *git.Repository, prefix string, preRelease release.PreReleaseFunc) (vergo.SemverRef, error) {
+			return vergo.SemverRef{Version: NewVersionT(t, "0.1.0")}, nil
+		}
 	}
 
 	cmd := RootCmd()

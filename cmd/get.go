@@ -1,10 +1,13 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"github.com/Masterminds/semver/v3"
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	vergo "github.com/sky-uk/umc-shared/vergo/git"
+	"github.com/sky-uk/umc-shared/vergo/release"
 	"github.com/spf13/cobra"
 	"github.com/thoas/go-funk"
 )
@@ -36,9 +39,8 @@ func OnlyValidArgsAndAliases(cmd *cobra.Command, args []string) error {
 }
 
 type RefFunc func(repo *git.Repository, prefix string) (vergo.SemverRef, error)
-type CurrentVersionFunc func(repo *git.Repository, prefix string, preRelease vergo.PreRelease) (vergo.SemverRef, error)
 
-func GetCmd(latest, previous RefFunc, current CurrentVersionFunc) *cobra.Command {
+func GetCmd(latest, previous RefFunc, current vergo.CurrentVersionFunc) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:        "get (latest-release|previous-release|current-version)",
 		Short:      "gets the latest release or current version",
@@ -71,7 +73,7 @@ func GetCmd(latest, previous RefFunc, current CurrentVersionFunc) *cobra.Command
 	return cmd
 }
 
-func get(latest, previous RefFunc, current CurrentVersionFunc, rootFlags *RootFlags, modifier string, withMetadata bool) (vergo.SemverRef, error) {
+func get(latest, previous RefFunc, current vergo.CurrentVersionFunc, rootFlags *RootFlags, modifier string, withMetadata bool) (vergo.SemverRef, error) {
 	repo, err := git.PlainOpenWithOptions(rootFlags.repositoryLocation, &git.PlainOpenOptions{DetectDotGit: true})
 	if err != nil {
 		return vergo.EmptyRef, err
@@ -83,20 +85,11 @@ func get(latest, previous RefFunc, current CurrentVersionFunc, rootFlags *RootFl
 	case "pr", "previous-release":
 		return previous(repo, rootFlags.tagPrefix)
 	case "cv", "current-version":
-		return current(repo, rootFlags.tagPrefix, func(version *semver.Version) (semver.Version, error) {
-			pre, err := version.IncMinor().SetPrerelease("SNAPSHOT")
-			if err != nil {
-				return semver.Version{}, err
-			}
-			if withMetadata {
-				head, err := repo.Head()
-				if err != nil {
-					return semver.Version{}, err
-				}
-				return pre.SetMetadata(head.Hash().String()[0:7])
-			}
-			return pre, nil
-		})
+		ref, err := current(repo, rootFlags.tagPrefix, release.PreRelease(repo, release.PreReleaseOptions{WithMetadata: withMetadata}))
+		if errors.Is(err, plumbing.ErrReferenceNotFound) || errors.Is(err, vergo.ErrNoTagFound) {
+			return vergo.SemverRef{Version: semver.MustParse("0.0.0-SNAPSHOT")}, nil
+		}
+		return ref, err
 	default:
 		return vergo.EmptyRef, fmt.Errorf("%w : %s", ErrInvalidArg, modifier)
 	}

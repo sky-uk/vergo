@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func BumpCmd(bump bump.BumpFunc, pushTag vergo.PushTagFunc) *cobra.Command {
+func BumpCmd(bumpFunc bump.Func, pushTag vergo.PushTagFunc) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:       "release (patch|minor|major|auto)",
 		Short:     "increments the version numbers",
@@ -38,7 +38,11 @@ func BumpCmd(bump bump.BumpFunc, pushTag vergo.PushTagFunc) *cobra.Command {
 					return err
 				}
 			}
-			version, err := bump(repo, rootFlags.tagPrefix, increment, rootFlags.versionedBranches, rootFlags.dryRun)
+			version, err := bumpFunc(repo, increment, bump.Options{
+				TagPrefix:         rootFlags.tagPrefix,
+				Remote:            rootFlags.remote,
+				VersionedBranches: rootFlags.versionedBranches,
+				DryRun:            rootFlags.dryRun})
 			if err != nil {
 				return err
 			}

@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.23.0] - 14-03-2022
+`vergo get cv` should return `0.0.0-SNAPSHOT` in an empty repo or a repo without any tags 
+
 ## [0.22.0] - 10-03-2022
 add ability extract release directives from the last commit message
 e.g. : `vergo bump auto -t app` will look for patch/minor/major in commit message

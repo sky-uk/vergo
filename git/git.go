@@ -10,6 +10,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	log "github.com/sirupsen/logrus"
+	"github.com/sky-uk/umc-shared/vergo/release"
 	"golang.org/x/crypto/ssh/agent"
 	"net"
 	"os"
@@ -257,9 +258,9 @@ func refsWithPrefix(repo *gogit.Repository, prefix string) ([]SemverRef, error) 
 	return versions, nil
 }
 
-type PreRelease func(version *semver.Version) (semver.Version, error)
+type CurrentVersionFunc func(repo *gogit.Repository, prefix string, preRelease release.PreReleaseFunc) (SemverRef, error)
 
-func CurrentVersion(repo *gogit.Repository, prefix string, preRelease PreRelease) (SemverRef, error) {
+func CurrentVersion(repo *gogit.Repository, prefix string, preRelease release.PreReleaseFunc) (SemverRef, error) {
 	head, err := repo.Head()
 	if err != nil {
 		return EmptyRef, err
