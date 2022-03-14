@@ -111,10 +111,6 @@ readonly tagPrefixBananaVersion_2_0_0="$(vergo bump major --push-tag --tag-prefi
 [[ "$(vergo get lr --tag-prefix=banana)" == "2.0.0" ]]
 [[ "$(vergo get cv --tag-prefix=banana)" == "2.0.0" ]]
 
-#test bump auto
-[[ "$(vergo bump auto --tag-prefix=apple 2>&1)" == *'increment hint not present: apple'* ]]
-[[ "$(vergo check increment-hint --tag-prefix=apple 2>&1)" == *'increment hint not present: apple'* ]]
-
 #test bump major with slash postfix
 readonly tagPrefixOrangeVersion_3_0_0="$(vergo bump major --push-tag --tag-prefix=orange/v --log-level=trace 2>&1)"
 [[ $tagPrefixOrangeVersion_3_0_0 == *'Set tag orange/v3.0.0'* ]]

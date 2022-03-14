@@ -33,19 +33,18 @@ func mockPushTagFailure(_ *git.Repository, _, _, _ string, _ bool) error {
 	return errors.New("push tag failed")
 }
 
-func checkReleaseDependencies(t *testing.T, err1 error, err2 error, err3 error) (release.SkipHintPresentFunc,
+func checkReleaseDependencies(t *testing.T, skipHintPresentErr error, validateHEADErr error, incrementHintErr error) (release.SkipHintPresentFunc,
 	release.ValidateHEADFunc, release.IncrementHintFunc) {
 	t.Helper()
 	return func(repo *git.Repository, tagPrefixRaw string) error {
-			return err1
+			return skipHintPresentErr
 		}, func(repo *git.Repository, remote string, versionedBranches []string) error {
-			return err2
+			return validateHEADErr
 		}, func(repo *git.Repository, tagPrefixRaw string) (string, error) {
-			if err3 == nil {
+			if incrementHintErr == nil {
 				return "some-increment", nil
-			} else {
-				return "", err3
 			}
+			return "", incrementHintErr
 		}
 }
 
@@ -89,10 +88,10 @@ func makeCheck(t *testing.T) (*cobra.Command, *bytes.Buffer) {
 	return cmd, b
 }
 
-func makeCheckFail(t *testing.T, err1 error, err2 error, err3 error) (*cobra.Command, *bytes.Buffer) {
+func makeCheckFail(t *testing.T, skipHintPresentErr error, validateHEADErr error, incrementHintErr error) (*cobra.Command, *bytes.Buffer) {
 	t.Helper()
 	cmd := RootCmd()
-	cmd.AddCommand(CheckCmd(checkReleaseDependencies(t, err1, err2, err3)))
+	cmd.AddCommand(CheckCmd(checkReleaseDependencies(t, skipHintPresentErr, validateHEADErr, incrementHintErr)))
 	b := bytes.NewBufferString("")
 	cmd.SetOut(b)
 	cmd.SetErr(b)

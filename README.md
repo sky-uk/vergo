@@ -58,7 +58,7 @@ curl -sLo vergo_vergo-0.20.0_linux_amd64.tar.gz https://nexus.api.bskyb.com/nexu
 
   `vergo bump major --tag-prefix=orange/`
 
-* checks if a release can be skipped by inspecting the latest commit message. If the commit message includes the hint `vergo:banana:skip-release` then the command fails saying release not required. But this does not prevent `bump` from incrementing the tags. 
+* checks if a release can be skipped by inspecting the latest commit message. If the commit message includes the hint `vergo:banana:skip-release` then the command fails saying release not required. 
 
   ```
   # expected usage 
@@ -66,6 +66,11 @@ curl -sLo vergo_vergo-0.20.0_linux_amd64.tar.gz https://nexus.api.bskyb.com/nexu
     vergo bump major --tag-prefix=banana
   fi
   ```
+* automatic increment by reading the last commit message. if the latest commit message includes `[vergo:app:major-release]` string then auto will be translated to `major`
+  ```
+    vergo bump auto -t app #will look for patch/minor/major in commit message
+  ```
+  
 
 ## Comparison of axion-release-plugin and vergo
 
