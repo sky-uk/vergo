@@ -3,7 +3,7 @@ package cmd
 import (
 	"errors"
 	"github.com/go-git/go-git/v5"
-	"github.com/sky-uk/umc-shared/vergo/release"
+	"github.com/sky-uk/vergo/release"
 	"github.com/spf13/cobra"
 )
 

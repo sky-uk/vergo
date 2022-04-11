@@ -6,8 +6,8 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
-	vergo "github.com/sky-uk/umc-shared/vergo/git"
-	"github.com/sky-uk/umc-shared/vergo/release"
+	vergo "github.com/sky-uk/vergo/git"
+	"github.com/sky-uk/vergo/release"
 	"github.com/spf13/cobra"
 	"github.com/thoas/go-funk"
 )

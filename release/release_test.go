@@ -3,8 +3,8 @@ package release_test
 import (
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
-	. "github.com/sky-uk/umc-shared/vergo/internal-test"
-	"github.com/sky-uk/umc-shared/vergo/release"
+	. "github.com/sky-uk/vergo/internal-test"
+	"github.com/sky-uk/vergo/release"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

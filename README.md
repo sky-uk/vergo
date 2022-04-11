@@ -5,22 +5,36 @@
 Vergo is an executable command line tool that is an alternative to axion gradle plugin
 (https://github.com/allegro/axion-release-plugin.git)
 
+## Requirements
+
+* go v1.17+
+* goreleaser
+* gofmt
+
+## Testing
+
+Run `make test` from the vergo directory.
+
+## Changelog
+
+Please ensure you update the `CHANGELOG.md`.
+
 ## Installation
 
 ### Mac
 
 ```bash
-curl -sLo vergo_vergo-0.20.0_darwin_amd64.tar.gz https://nexus.api.bskyb.com/nexus/service/local/repositories/nova-packages/content/vergo/vergo-0.20.0/vergo_vergo-0.20.0_darwin_amd64.tar.gz \
-      && tar -xzf vergo_vergo-0.20.0_darwin_amd64.tar.gz -C /usr/local/bin \
-      && rm vergo_vergo-0.20.0_darwin_amd64.tar.gz
+curl -sLo vergo_0.20.0_darwin_arm64.tar.gz https://github.com/sky-uk/vergo/releases/download/v0.20.0/vergo_0.20.0_darwin_arm64.tar.gz \
+      && tar -xzf vergo_0.20.0_darwin_arm64.tar.gz -C /usr/local/bin \
+      && rm vergo_0.20.0_darwin_arm64.tar.gz
 ```
 
 ### Linux
 
 ```bash
-curl -sLo vergo_vergo-0.20.0_linux_amd64.tar.gz https://nexus.api.bskyb.com/nexus/service/local/repositories/nova-packages/content/vergo/vergo-0.20.0/vergo_vergo-0.20.0_linux_amd64.tar.gz \
-      && tar -xzf vergo_vergo-0.20.0_linux_amd64.tar.gz -C /usr/local/bin \
-      && rm vergo_vergo-0.20.0_linux_amd64.tar.gz
+curl -sLo vergo_0.20.0_linux_arm64.tar.gz https://github.com/sky-uk/vergo/releases/download/v0.20.0/vergo_0.20.0_linux_arm64.tar.gz \
+      && tar -xzf vergo_0.20.0_linux_arm64.tar.gz -C /usr/local/bin \
+      && rm vergo_0.20.0_linux_arm64.tar.gz
 ```
 
 
@@ -140,6 +154,3 @@ INFO[0000] Set tag project-0.1.2
 0.1.2
 
 ```
-
-* There is no replacement for `markNextVersion` at the moment. happy to implement this if it is required by other teams.
-  Nova don't use it.

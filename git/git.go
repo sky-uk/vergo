@@ -10,7 +10,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	log "github.com/sirupsen/logrus"
-	"github.com/sky-uk/umc-shared/vergo/release"
+	"github.com/sky-uk/vergo/release"
 	"golang.org/x/crypto/ssh/agent"
 	"net"
 	"os"

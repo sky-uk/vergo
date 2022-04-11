@@ -4,7 +4,6 @@ export
 
 GORELEASER_VERSION := 0.179.0
 LINTER_VERSION := 1.43.0
-UPLOAD_TARGET=https://nexus.api.bskyb.com/nexus/content/repositories/nova-packages
 PATH := $(shell pwd)/bin:$(PATH)
 SHELL := bash
 
@@ -46,16 +45,16 @@ pre-check: tools
 	golangci-lint run ./...
 
 release-test: build
-	bin/vergo check increment-hint --tag-prefix vergo
+	bin/vergo check increment-hint
 
 release: build
-	bin/vergo check release --tag-prefix vergo || exit 0
-	bin/vergo bump auto --tag-prefix vergo
+	bin/vergo check release || exit 0
+	bin/vergo bump auto
 	BUILT_BY="`goreleaser --version | head -n1`, `go version`" \
-	GORELEASER_CURRENT_TAG=`bin/vergo get latest-release --tag-prefix vergo -p` \
-	GORELEASER_PREVIOUS_TAG=`bin/vergo get previous-release --tag-prefix vergo -p` \
-	goreleaser release --skip-validate --rm-dist
-	bin/vergo push --tag-prefix vergo
+	GORELEASER_CURRENT_TAG=`bin/vergo get latest-release -p` \
+	GORELEASER_PREVIOUS_TAG=`bin/vergo get previous-release -p` \
+	goreleaser release --rm-dist
+	#bin/vergo push
 
 unit-tests: pre-check
 	go clean -testcache
@@ -80,3 +79,12 @@ build: pre-check
 
 dependency-updates:
 	@go list -u -f '{{if (and (not (or .Main .Indirect)) .Update)}}{{.Path}}: {{.Version}} -> {{.Update.Version}}{{end}}' -m all
+
+go-licenses:
+	@go install github.com/google/go-licenses@latest
+
+print-licenses: go-licenses
+	@go-licenses csv .
+
+check-licenses: go-licenses
+	!(go-licenses csv . | grep -E 'GNU|AGPL|GPL|MPL|CPL|CDDL|EPL|CCBYNC|Facebook|WTFPL')

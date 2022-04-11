@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/sky-uk/umc-shared/vergo/cmd"
+	"github.com/sky-uk/vergo/cmd"
 	"os"
 )
 

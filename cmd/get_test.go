@@ -3,9 +3,9 @@ package cmd_test
 import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
-	vergo "github.com/sky-uk/umc-shared/vergo/git"
-	. "github.com/sky-uk/umc-shared/vergo/internal-test"
-	"github.com/sky-uk/umc-shared/vergo/release"
+	vergo "github.com/sky-uk/vergo/git"
+	. "github.com/sky-uk/vergo/internal-test"
+	"github.com/sky-uk/vergo/release"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"

@@ -1,7 +1,7 @@
 package cmd_test
 
 import (
-	. "github.com/sky-uk/umc-shared/vergo/internal-test"
+	. "github.com/sky-uk/vergo/internal-test"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"

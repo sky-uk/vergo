@@ -19,11 +19,11 @@ builds:
     ldflags:
       - -s
       - -w
-      - -X github.com/sky-uk/umc-shared/vergo/cmd.version={{.Env.GORELEASER_CURRENT_TAG}}
-      - -X github.com/sky-uk/umc-shared/vergo/cmd.commit={{.Commit}}
-      - -X github.com/sky-uk/umc-shared/vergo/cmd.date={{.Date}}
-      - -X github.com/sky-uk/umc-shared/vergo/cmd.snapshot={{.IsSnapshot}}
-      - -X "github.com/sky-uk/umc-shared/vergo/cmd.builtBy={{.Env.BUILT_BY}}"
+      - -X github.com/sky-uk/vergo/cmd.version={{.Env.GORELEASER_CURRENT_TAG}}
+      - -X github.com/sky-uk/vergo/cmd.commit={{.Commit}}
+      - -X github.com/sky-uk/vergo/cmd.date={{.Date}}
+      - -X github.com/sky-uk/vergo/cmd.snapshot={{.IsSnapshot}}
+      - -X "github.com/sky-uk/vergo/cmd.builtBy={{.Env.BUILT_BY}}"
 
 snapshot:
   name_template: "{{ .Env.GORELEASER_CURRENT_TAG }}"
@@ -40,11 +40,3 @@ archives:
 source:
   name_template: '{{ .ProjectName }}-{{ .Tag }}'
   format: tar.gz
-
-uploads:
-  # You can have multiple Put instances.
-  - # Unique name of your Put instance. Used to identify the instance.
-    name: nexus
-    method: PUT
-    mode: archive
-    target: '{{ .Env.UPLOAD_TARGET }}/{{ .ProjectName }}/{{ .Tag }}/'

@@ -1,0 +1,22 @@
+os: linux
+dist: xenial
+language: go
+
+go:
+  - 1.17.x
+
+before_install:
+  - git fetch --tags
+
+cache:
+  directories: []
+
+before_cache: []
+
+jobs:
+  include:
+    - name: build
+      script: make release-test check-licenses test
+    - stage: release
+      if: (branch = master AND type = push) AND NOT fork
+      script: make release

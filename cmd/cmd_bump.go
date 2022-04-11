@@ -3,9 +3,9 @@ package cmd
 import (
 	"github.com/go-git/go-git/v5"
 	log "github.com/sirupsen/logrus"
-	"github.com/sky-uk/umc-shared/vergo/bump"
-	vergo "github.com/sky-uk/umc-shared/vergo/git"
-	"github.com/sky-uk/umc-shared/vergo/release"
+	"github.com/sky-uk/vergo/bump"
+	vergo "github.com/sky-uk/vergo/git"
+	"github.com/sky-uk/vergo/release"
 	"github.com/spf13/cobra"
 )
 

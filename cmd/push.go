@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"github.com/go-git/go-git/v5"
-	vergo "github.com/sky-uk/umc-shared/vergo/git"
+	vergo "github.com/sky-uk/vergo/git"
 	"github.com/spf13/cobra"
 )
 
