@@ -135,3 +135,7 @@ go install github.com/sky-uk/vergo@latest
   ```
     vergo bump auto -t app #will look for patch/minor/major in commit message
   ```
+
+## Contributions
+
+We welcome contributions to Vergo. Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for details on how to contribute.
