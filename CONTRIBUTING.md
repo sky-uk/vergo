@@ -6,6 +6,29 @@ When contributing to this repository, please first discuss the change you wish t
 issue before making a change.  This saves everyone from wasted effort in the event that the proposed
 changes need some adjustment before they are ready for submission.
 
+## Requirements
+
+* go v1.17+
+* goreleaser
+* gofmt
+
+## Testing
+
+Run `make test` from the vergo directory.
+
+## Changelog
+
+Please ensure you update the `CHANGELOG.md`.
+
+## Releasing
+
+Only administrators of the Vergo repository can make new releases.
+
+Releases are automated with [goreleaser](https://goreleaser.com). To perform a release, and administrator must:
+
+- Provide a Github access token with `repo` permissions as the GITHUB_TOKEN environment variable.
+- Run `make release`.
+
 ## Pull Request Process
 
 1. If your changes include multiple commits, please squash them into a single commit.  Stack Overflow

@@ -3,7 +3,7 @@
 export
 
 GORELEASER_VERSION := 0.179.0
-LINTER_VERSION := 1.43.0
+LINTER_VERSION := 1.46.2
 PATH := $(shell pwd)/bin:$(PATH)
 SHELL := bash
 
@@ -47,14 +47,14 @@ pre-check: tools
 release-test: build
 	bin/vergo check increment-hint
 
-release: build
+release: release-test check-licenses test
 	bin/vergo check release || exit 0
 	bin/vergo bump auto
 	BUILT_BY="`goreleaser --version | head -n1`, `go version`" \
 	GORELEASER_CURRENT_TAG=`bin/vergo get latest-release -p` \
 	GORELEASER_PREVIOUS_TAG=`bin/vergo get previous-release -p` \
 	goreleaser release --rm-dist
-	#bin/vergo push
+	bin/vergo push
 
 unit-tests: pre-check
 	go clean -testcache
