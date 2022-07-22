@@ -2,7 +2,7 @@
 
 ## Description
 
-Vergo is a tool which allows you to easily attach semantic version tags to projectes in Git multi-project repositories.
+Vergo is a tool which allows you to easily attach semantic version tags to projects in Git multi-project repositories.
 It's an alternative to Axion release Gradle plugin (https://github.com/allegro/axion-release-plugin.git) for non-Gradle projects.
 
 ## Comparison of axion-release-plugin and vergo
