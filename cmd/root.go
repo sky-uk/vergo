@@ -20,6 +20,7 @@ func RootCmd() *cobra.Command {
 	rootCmd.PersistentFlags().StringP(tagPrefix, "t", "", "version prefix")
 	rootCmd.PersistentFlags().StringP(repositoryLocation, "l", ".", "repository location")
 	rootCmd.PersistentFlags().String(logLevel, "Info", "set log level")
+	rootCmd.PersistentFlags().BoolP(strictHostChecking, "d", false, "disable strict host checking for git. should only be enabled on ci.")
 	rootCmd.PersistentFlags().Bool(dryRun, false, "dry run")
 	rootCmd.PersistentFlags().StringSlice(versionedBranchNames, []string{"master", "main"},
 		"names of the main working branches")
@@ -30,7 +31,7 @@ func RootCmd() *cobra.Command {
 type RootFlags struct {
 	remote, tagPrefix, tagPrefixRaw, repositoryLocation string
 	logLevel                                            log.Level
-	withPrefix, dryRun                                  bool
+	withPrefix, dryRun, disableStrictHostChecking       bool
 	versionedBranches                                   []string
 }
 
@@ -63,6 +64,10 @@ func readRootFlags(cmd *cobra.Command) (*RootFlags, error) {
 	if err != nil {
 		return nil, err
 	}
+	disableStrictHostChecking, err := cmd.Flags().GetBool(strictHostChecking)
+	if err != nil {
+		return nil, err
+	}
 	logLevel, err := log.ParseLevel(logLevelParam)
 	if err != nil {
 		log.WithError(err).Errorln("invalid log level, using INFO instead")
@@ -71,14 +76,15 @@ func readRootFlags(cmd *cobra.Command) (*RootFlags, error) {
 		log.SetLevel(logLevel)
 	}
 	return &RootFlags{
-		remote:             remote,
-		versionedBranches:  versionedBranches,
-		tagPrefix:          sanitiseTagPrefix(prefix),
-		tagPrefixRaw:       prefix,
-		repositoryLocation: repositoryLocation,
-		logLevel:           logLevel,
-		dryRun:             dryRun,
-		withPrefix:         withPrefix,
+		remote:                    remote,
+		versionedBranches:         versionedBranches,
+		tagPrefix:                 sanitiseTagPrefix(prefix),
+		tagPrefixRaw:              prefix,
+		repositoryLocation:        repositoryLocation,
+		logLevel:                  logLevel,
+		dryRun:                    dryRun,
+		withPrefix:                withPrefix,
+		disableStrictHostChecking: disableStrictHostChecking,
 	}, nil
 }
 

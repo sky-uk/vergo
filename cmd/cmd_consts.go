@@ -6,6 +6,7 @@ const dryRun = "dry-run"
 const tagPrefix = "tag-prefix"
 const logLevel = "log-level"
 const remoteName = "remote-name"
+const strictHostChecking = "disable-strict-host-check"
 
 const pushTagParam = "push-tag"
 const mergeCommits = "merge-commits"

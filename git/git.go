@@ -11,6 +11,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	log "github.com/sirupsen/logrus"
 	"github.com/sky-uk/vergo/release"
+	cryptossh "golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 	"net"
 	"os"
@@ -110,9 +111,9 @@ func CreateTag(repo *gogit.Repository, version, prefix string, dryRun bool) erro
 type PushTagFunc func(
 	repo *gogit.Repository,
 	version, prefix, remote string,
-	dryRun bool) error
+	dryRun bool, disableStrictHostChecking bool) error
 
-func PushTag(r *gogit.Repository, version, prefix, remote string, dryRun bool) error {
+func PushTag(r *gogit.Repository, version, prefix, remote string, dryRun bool, disableStrictHostChecking bool) error {
 	tag := prefix + version
 
 	socket, found := os.LookupEnv("SSH_AUTH_SOCK")
@@ -138,6 +139,10 @@ func PushTag(r *gogit.Repository, version, prefix, remote string, dryRun bool) e
 	auth := &ssh.PublicKeys{
 		User:   "git",
 		Signer: signers[0],
+	}
+
+	if disableStrictHostChecking {
+		auth.HostKeyCallback = cryptossh.InsecureIgnoreHostKey()
 	}
 
 	log.Debugf("Pushing tag: %v", tag)
