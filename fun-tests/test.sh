@@ -111,6 +111,14 @@ readonly tagPrefixBananaVersion_2_0_0="$(vergo bump major --push-tag --tag-prefi
 [[ "$(vergo get lr --tag-prefix=banana)" == "2.0.0" ]]
 [[ "$(vergo get cv --tag-prefix=banana)" == "2.0.0" ]]
 
+#test bump major ignoring strict host checking
+readonly tagPrefixBananaVersion_3_0_0="$(vergo bump minor --push-tag --tag-prefix=mango --log-level=trace -d 2>&1)"
+[[ $tagPrefixBananaVersion_3_0_0 == *'Set tag mango-0.1.0'* ]]
+[[ $tagPrefixBananaVersion_3_0_0 == *'Pushing tag: mango-0.1.0'* ]]
+#test bump major check version with strict host checking
+[[ "$(vergo get lr --tag-prefix=mango)" == "0.1.0" ]]
+[[ "$(vergo get cv --tag-prefix=mango)" == "0.1.0" ]]
+
 #test bump major with slash postfix
 readonly tagPrefixOrangeVersion_3_0_0="$(vergo bump major --push-tag --tag-prefix=orange/v --log-level=trace 2>&1)"
 [[ $tagPrefixOrangeVersion_3_0_0 == *'Set tag orange/v3.0.0'* ]]

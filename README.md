@@ -136,6 +136,12 @@ go install github.com/sky-uk/vergo@latest
     vergo bump auto -t app #will look for patch/minor/major in commit message
   ```
 
+## Strict Host Checking
+
+You can address the error `ssh: handshake failed: knownhosts: key is unknown ` when pushing tags with vergo in two ways:
+- Calling `ssh-keyscan -H github.com >> ~/.ssh/known_hosts` prior to pushing your vergo tag to introduce github to your known hosts.
+- Calling `vergo` with the `--disable-strict-host-check` flag. This should only be used on CI where known hosts are not cached.
+
 ## Contributions
 
 We welcome contributions to Vergo. Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for details on how to contribute.

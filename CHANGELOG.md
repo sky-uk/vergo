@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.24.0] - 29-09-2022
+Disable strict host checking using the global flag `--disable-strict-host-check` or `-d`. 
+This is only intended to be used on CI where known_hosts is not cached. 
+
 ## [0.23.0] - 14-03-2022
 `vergo get cv` should return `0.0.0-SNAPSHOT` in an empty repo or a repo without any tags 
 
