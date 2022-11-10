@@ -12,7 +12,7 @@ import (
 	"github.com/sky-uk/vergo/release"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
-	"io/ioutil"
+	"io"
 	"testing"
 )
 
@@ -25,11 +25,11 @@ func bumpSuccess(t *testing.T) bump.Func {
 	}
 }
 
-func mockPushTagSuccess(_ *git.Repository, _, _, _ string, _ bool) error {
+func mockPushTagSuccess(_ *git.Repository, _, _, _ string, _ bool, _ bool) error {
 	return nil
 }
 
-func mockPushTagFailure(_ *git.Repository, _, _, _ string, _ bool) error {
+func mockPushTagFailure(_ *git.Repository, _, _, _ string, _ bool, _ bool) error {
 	return errors.New("push tag failed")
 }
 
@@ -138,7 +138,7 @@ func makeList(t *testing.T) (*cobra.Command, *bytes.Buffer) {
 
 func readBuffer(t *testing.T, buffer *bytes.Buffer) string {
 	t.Helper()
-	out, err := ioutil.ReadAll(buffer)
+	out, err := io.ReadAll(buffer)
 	assert.Nil(t, err)
 	return string(out)
 }
