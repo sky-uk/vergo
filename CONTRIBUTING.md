@@ -24,6 +24,8 @@ Please ensure you update the `CHANGELOG.md`.
 
 Only administrators of the Vergo repository can make new releases.
 
+In order to release you will need to ensure you are on a commit prefixed with `[vergo:(major|minor|patch)-release]`.
+
 Releases are automated with [goreleaser](https://goreleaser.com). To perform a release, and administrator must:
 
 - Provide a Github access token with `repo` permissions as the GITHUB_TOKEN environment variable.
