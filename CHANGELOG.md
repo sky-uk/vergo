@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.26.0] - 15-11-2022
+Fixed bug in tag prefix trimming.
+
 ## [0.24.0] - 29-09-2022
 Disable strict host checking using the global flag `--disable-strict-host-check` or `-d`. 
 This is only intended to be used on CI where known_hosts is not cached. 

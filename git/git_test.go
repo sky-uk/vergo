@@ -3,20 +3,22 @@ package git_test
 import (
 	"errors"
 	"fmt"
+	"math"
+	"testing"
+	"time"
+
 	"github.com/Masterminds/semver/v3"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/stretchr/testify/assert"
+	"github.com/thoas/go-funk"
+	"go.uber.org/atomic"
+
 	"github.com/sky-uk/vergo/bump"
 	. "github.com/sky-uk/vergo/git"
 	. "github.com/sky-uk/vergo/internal-test"
 	"github.com/sky-uk/vergo/release"
-	"github.com/stretchr/testify/assert"
-	"github.com/thoas/go-funk"
-	"go.uber.org/atomic"
-	"math"
-	"testing"
-	"time"
 )
 
 var (
@@ -234,7 +236,7 @@ func TestFindLatestTagSameCommitWithPrefix(t *testing.T) {
 				for patch := 1; patch < 5; patch++ {
 					versionSuffix := fmt.Sprintf("%d.%d.%d", major, minor, patch)
 					t.Run(versionSuffix, func(t *testing.T) {
-						tagPrefix1 := "app" + postfix
+						tagPrefix1 := "app1" + postfix
 						version1 := fmt.Sprintf("%d.%d.%d", major, minor, patch)
 						tag1 := fmt.Sprintf("%s%s", tagPrefix1, version1)
 						ref1 := r.CreateTag(tag1, r.Head().Hash())

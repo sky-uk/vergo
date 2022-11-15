@@ -3,6 +3,12 @@ package git
 import (
 	"errors"
 	"fmt"
+	"net"
+	"os"
+	"regexp"
+	"sort"
+	"strings"
+
 	"github.com/Masterminds/semver/v3"
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
@@ -10,14 +16,10 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	log "github.com/sirupsen/logrus"
-	"github.com/sky-uk/vergo/release"
 	cryptossh "golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
-	"net"
-	"os"
-	"regexp"
-	"sort"
-	"strings"
+
+	"github.com/sky-uk/vergo/release"
 )
 
 type SortDirection string
@@ -248,7 +250,7 @@ func refsWithPrefix(repo *gogit.Repository, prefix string) ([]SemverRef, error) 
 	err = tagRefs.ForEach(func(t *plumbing.Reference) error {
 		tag := t.Name().String()
 		if re.MatchString(tag) {
-			versionString := strings.TrimLeft(tag, tagPrefix)
+			versionString := strings.TrimPrefix(tag, tagPrefix)
 			if version, err := semver.NewVersion(versionString); err == nil {
 				versions = append(versions, SemverRef{Version: version, Ref: t})
 			} else {
