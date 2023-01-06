@@ -181,6 +181,25 @@ func TestShouldWorkWhenHeadlessCheckoutOfMainBranch(t *testing.T) {
 }
 
 //nolint:scopelint,paralleltest
+func TestShouldWorkWhenOnHeadlessCheckoutOfOldCommitOnMainBranch(t *testing.T) {
+	for _, prefix := range prefixes {
+		for _, increment := range increments {
+			t.Run(prefix+"-"+increment, func(t *testing.T) {
+				r := NewTestRepo(t)
+				oldCommit := r.Head().Hash()
+				r.DoCommit("foo")
+				err := r.Worktree().Checkout(&gogit.CheckoutOptions{Hash: oldCommit})
+				assert.Nil(t, err)
+				assert.Equal(t, plumbing.HEAD.String(), r.Head().Name().Short())
+
+				err = release.ValidateHEAD(r.Repo, remoteName, mainBranch)
+				assert.Nil(t, err)
+			})
+		}
+	}
+}
+
+//nolint:scopelint,paralleltest
 func TestShouldNOTWorkWhenHeadlessCheckoutOfOtherBranch(t *testing.T) {
 	for _, prefix := range prefixes {
 		for _, increment := range increments {
