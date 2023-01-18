@@ -142,7 +142,7 @@ You can address the error `ssh: handshake failed: knownhosts: key is unknown ` w
 - Calling `ssh-keyscan -H github.com >> ~/.ssh/known_hosts` prior to pushing your vergo tag to introduce github to your known hosts.
 - Calling `vergo` with the `--disable-strict-host-check` flag. This should only be used on CI where known hosts are not cached.
 
-## Add git ssh key to ssh-agent
+## Running Locally - SSH Key Failures
 You can address the error `FATA[0000] failed to get signers, make sure to add private key identities to the authentication agent  error="<nil>"` when pushing tags with vergo by:
 - Calling `ssh-add ~/.ssh/<github_key>` to add your github ssh key to the ssh agent
 
