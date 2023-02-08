@@ -102,11 +102,17 @@ func ValidateHEAD(repo *gogit.Repository, remoteName string, versionedBranches [
 			if err != nil {
 				log.WithError(err).Debugf("branchRef could not be resolved: %s\n", branchRef.String())
 			} else {
-				if isCommitOnBranch(repo, head.Hash(), branchRef) {
+				commitOnBranch, err := isCommitOnBranch(repo, head.Hash(), branchRef)
+				if err != nil {
+					log.WithError(err).Errorf("Failed to check if commit %s is on branch %s\n",
+						head.Hash().String(), branchRef.String())
+				}
+
+				if commitOnBranch {
 					validRef = true
 					break
 				} else {
-					log.Tracef("Invalid ref [branch: %s, head: %s, ref: %s]\n",
+					log.Warnf("Commit not found on branch [branch: %s, head: %s, ref: %s]\n",
 						branchRef.String(), head.Hash().String(), revision.String())
 				}
 			}
@@ -143,11 +149,18 @@ func PreRelease(repo *gogit.Repository, options PreReleaseOptions) PreReleaseFun
 	}
 }
 
-func isCommitOnBranch(repo *gogit.Repository, commit plumbing.Hash, branch plumbing.ReferenceName) bool {
-	//todo handle errors
-	branchRef, _ := repo.Reference(branch, true)
-	reaches, _ := reaches(repo, branchRef.Hash(), commit)
-	return reaches
+func isCommitOnBranch(repo *gogit.Repository, commit plumbing.Hash, branch plumbing.ReferenceName) (bool, error) {
+	branchRef, err := repo.Reference(branch, true)
+	if err != nil {
+		return false, err
+	}
+
+	reaches, err := reaches(repo, branchRef.Hash(), commit)
+	if err != nil {
+		return false, err
+	}
+
+	return reaches, nil
 }
 
 func reaches(repo *gogit.Repository, branchCommit, commitToFind plumbing.Hash) (bool, error) {
