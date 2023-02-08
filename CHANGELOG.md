@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.27.0] - 08-02-2023
+Fixed bug introduced in version `0.21.0` where `vergo bump` and `vergo check` would fail if the current commit is not 
+the latest on a versioned branch e.g. `master` or `main`.
+
 ## [0.26.0] - 15-11-2022
 Fixed bug in tag prefix trimming.
 
