@@ -102,13 +102,13 @@ func ValidateHEAD(repo *gogit.Repository, remoteName string, versionedBranches [
 			if err != nil {
 				log.WithError(err).Debugf("branchRef could not be resolved: %s\n", branchRef.String())
 			} else {
-				commitOnBranch, err := isCommitOnBranch(repo, head.Hash(), branchRef)
+				commitOnVersionedBranch, err := isCommitOnBranch(repo, head.Hash(), branchRef)
 				if err != nil {
 					log.WithError(err).Errorf("Failed to check if commit %s is on branch %s\n",
 						head.Hash().String(), branchRef.String())
 				}
 
-				if commitOnBranch {
+				if commitOnVersionedBranch {
 					validRef = true
 					break
 				} else {
