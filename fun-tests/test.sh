@@ -174,7 +174,7 @@ remote_tags=$(git ls-remote --tags origin apple-0.2.0 app-0.1.1 banana-2.0.0 ora
 setUpLikeCI
 
 [[ "$(git branch -l | grep -v HEAD)" == "" ]] #make sure no local branch
-git checkout 117443bb
+git checkout d13ae40 #commit on the `test-branch` branch
 [[ "$(vergo check release --tag-prefix=apple 2>&1)" == *'invalid headless checkout'* ]]
 [[ "$(vergo bump minor --tag-prefix=apple 2>&1)" == *'invalid headless checkout'* ]]
 
