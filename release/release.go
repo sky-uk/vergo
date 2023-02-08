@@ -155,7 +155,8 @@ func isCommitOnBranch(repo *gogit.Repository, commit plumbing.Hash, branch plumb
 		return false, err
 	}
 
-	reaches, err := reaches(repo, branchRef.Hash(), commit)
+	memo := make(map[plumbing.Hash]bool)
+	reaches, err := reaches(repo, branchRef.Hash(), commit, memo)
 	if err != nil {
 		return false, err
 	}
@@ -163,8 +164,13 @@ func isCommitOnBranch(repo *gogit.Repository, commit plumbing.Hash, branch plumb
 	return reaches, nil
 }
 
-func reaches(repo *gogit.Repository, branchCommit, commitToFind plumbing.Hash) (bool, error) {
+func reaches(repo *gogit.Repository, branchCommit, commitToFind plumbing.Hash, memo map[plumbing.Hash]bool) (bool, error) {
+	if v, ok := memo[branchCommit]; ok {
+		return v, nil
+	}
+
 	if branchCommit == commitToFind {
+		memo[branchCommit] = true
 		return true, nil
 	}
 
@@ -174,13 +180,15 @@ func reaches(repo *gogit.Repository, branchCommit, commitToFind plumbing.Hash) (
 	}
 
 	for _, parentHash := range branchCommitObject.ParentHashes {
-		reaches, err := reaches(repo, parentHash, commitToFind)
+		reaches, err := reaches(repo, parentHash, commitToFind, memo)
 		if err != nil {
 			return false, err
 		}
 		if reaches {
+			memo[branchCommit] = true
 			return true, nil
 		}
 	}
+	memo[branchCommit] = false
 	return false, nil
 }
