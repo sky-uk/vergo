@@ -102,7 +102,7 @@ func ValidateHEAD(repo *gogit.Repository, remoteName string, versionedBranches [
 			if err != nil {
 				log.WithError(err).Debugf("branchRef could not be resolved: %s\n", branchRef.String())
 			} else {
-				if isCommitOnBranch(repo, head.Hash().String(), branchRef) {
+				if isCommitOnBranch(repo, head.Hash(), branchRef) {
 					validRef = true
 					break
 				} else {
@@ -143,37 +143,31 @@ func PreRelease(repo *gogit.Repository, options PreReleaseOptions) PreReleaseFun
 	}
 }
 
-func isCommitOnBranch(repo *gogit.Repository, hash string, branch plumbing.ReferenceName) bool {
+func isCommitOnBranch(repo *gogit.Repository, commit plumbing.Hash, branch plumbing.ReferenceName) bool {
 	//todo handle errors
-	commit := plumbing.NewHash(hash)
-	reference, _ := repo.Reference(branch, true)
-	memo := make(map[plumbing.Hash]bool)
-	reaches, _ := reaches(repo, reference.Hash(), commit, memo)
+	branchRef, _ := repo.Reference(branch, true)
+	reaches, _ := reaches(repo, branchRef.Hash(), commit)
 	return reaches
 }
 
-func reaches(r *gogit.Repository, start, c plumbing.Hash, memo map[plumbing.Hash]bool) (bool, error) {
-	if v, ok := memo[start]; ok {
-		return v, nil
-	}
-	if start == c {
-		memo[start] = true
+func reaches(repo *gogit.Repository, branchCommit, commitToFind plumbing.Hash) (bool, error) {
+	if branchCommit == commitToFind {
 		return true, nil
 	}
-	co, err := r.CommitObject(start)
+
+	branchCommitObject, err := repo.CommitObject(branchCommit)
 	if err != nil {
 		return false, err
 	}
-	for _, p := range co.ParentHashes {
-		v, err := reaches(r, p, c, memo)
+
+	for _, parentHash := range branchCommitObject.ParentHashes {
+		reaches, err := reaches(repo, parentHash, commitToFind)
 		if err != nil {
 			return false, err
 		}
-		if v {
-			memo[start] = true
+		if reaches {
 			return true, nil
 		}
 	}
-	memo[start] = false
 	return false, nil
 }
