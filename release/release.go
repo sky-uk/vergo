@@ -6,6 +6,8 @@ import (
 	"github.com/Masterminds/semver/v3"
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/storer"
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"regexp"
@@ -155,40 +157,26 @@ func isCommitOnBranch(repo *gogit.Repository, commit plumbing.Hash, branch plumb
 		return false, err
 	}
 
-	memo := make(map[plumbing.Hash]bool)
-	reaches, err := reaches(repo, branchRef.Hash(), commit, memo)
+	branchGitLog, err := repo.Log(&gogit.LogOptions{
+		From: branchRef.Hash(),
+	})
+
+	if err != nil {
+		return false, err
+	}
+
+	reaches := false
+	err = branchGitLog.ForEach(func(branchCommit *object.Commit) error {
+		if branchCommit.Hash == commit {
+			reaches = true
+			return storer.ErrStop
+		}
+		return nil
+	})
+
 	if err != nil {
 		return false, err
 	}
 
 	return reaches, nil
-}
-
-func reaches(repo *gogit.Repository, branchCommit, commitToFind plumbing.Hash, memo map[plumbing.Hash]bool) (bool, error) {
-	if v, ok := memo[branchCommit]; ok {
-		return v, nil
-	}
-
-	if branchCommit == commitToFind {
-		memo[branchCommit] = true
-		return true, nil
-	}
-
-	branchCommitObject, err := repo.CommitObject(branchCommit)
-	if err != nil {
-		return false, err
-	}
-
-	for _, parentHash := range branchCommitObject.ParentHashes {
-		reaches, err := reaches(repo, parentHash, commitToFind, memo)
-		if err != nil {
-			return false, err
-		}
-		if reaches {
-			memo[branchCommit] = true
-			return true, nil
-		}
-	}
-	memo[branchCommit] = false
-	return false, nil
 }
