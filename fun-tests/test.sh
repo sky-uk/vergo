@@ -175,8 +175,8 @@ setUpLikeCI
 
 [[ "$(git branch -l | grep -v HEAD)" == "" ]] #make sure no local branch
 git checkout d13ae40 #commit on the `test-branch` branch
-[[ "$(vergo check release --tag-prefix=apple 2>&1)" == *'invalid headless checkout'* ]]
-[[ "$(vergo bump minor --tag-prefix=apple 2>&1)" == *'invalid headless checkout'* ]]
+[[ "$(vergo check release --tag-prefix=apple 2>&1)" == *' is not on a versioned branch'* ]]
+[[ "$(vergo bump minor --tag-prefix=apple 2>&1)" == *' is not on a versioned branch'* ]]
 
 [[ "$(git branch -l | grep -v HEAD)" == "" ]] #make sure no local branch
 git checkout a54f1f7
@@ -184,5 +184,5 @@ vergo check release --tag-prefix=apple
 [[ "$(vergo bump minor --tag-prefix=apple --log-level=trace 2>&1)" == *'Set tag apple-0.2.0'* ]]
 
 git checkout origin/master -b master #create local branch
-[[ "$(vergo check release --tag-prefix=apple --log-level=trace --versioned-branch-names main 2>&1)" == *'branch master is not in main branches list: main'* ]]
-[[ "$(vergo bump minor --tag-prefix=apple --log-level=trace --versioned-branch-names main 2>&1)" == *'branch master is not in main branches list: main'* ]]
+[[ "$(vergo check release --tag-prefix=apple --log-level=trace --versioned-branch-names main 2>&1)" == *'branch master is not in versioned branches list: main'* ]]
+[[ "$(vergo bump minor --tag-prefix=apple --log-level=trace --versioned-branch-names main 2>&1)" == *'branch master is not in versioned branches list: main'* ]]

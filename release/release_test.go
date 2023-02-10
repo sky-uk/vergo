@@ -1,6 +1,7 @@
 package release_test
 
 import (
+	"fmt"
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	. "github.com/sky-uk/vergo/internal-test"
@@ -157,7 +158,7 @@ func TestShouldFailWhenNotOnMainBranch(t *testing.T) {
 				r.BranchExists(branchName)
 				assert.Equal(t, branchName, r.Head().Name().Short())
 				err = release.ValidateHEAD(r.Repo, remoteName, mainBranch)
-				assert.Regexp(t, "branch apple is not in main branches list: master, main", err)
+				assert.Regexp(t, "branch apple is not in versioned branches list: master, main", err)
 			})
 		}
 	}
@@ -222,7 +223,7 @@ func TestShouldNOTWorkWhenHeadlessCheckoutOfOtherBranch(t *testing.T) {
 				assert.Equal(t, plumbing.HEAD.String(), r.Head().Name().Short())
 
 				err = release.ValidateHEAD(r.Repo, remoteName, mainBranch)
-				assert.Regexp(t, "invalid headless checkout", err)
+				assert.Equal(t, fmt.Sprintf("commit %s is not on a versioned branch: master, main", latestHashOnApple.String()), err.Error())
 			})
 		}
 	}

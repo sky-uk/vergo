@@ -1,6 +1,7 @@
 package bump_test
 
 import (
+	"fmt"
 	"github.com/Masterminds/semver/v3"
 	"github.com/go-git/go-billy/v5/memfs"
 	gogit "github.com/go-git/go-git/v5"
@@ -115,7 +116,7 @@ func TestBumpShouldFailWhenNotOnMainBranch(t *testing.T) {
 				r.BranchExists(branchName)
 				assert.Equal(t, branchName, r.Head().Name().Short())
 				_, err = Bump(r.Repo, increment, Options{TagPrefix: prefix, VersionedBranches: mainBranch})
-				assert.Regexp(t, "branch apple is not in main branches list: master, main", err)
+				assert.Regexp(t, "branch apple is not in versioned branches list: master, main", err)
 			})
 		}
 	}
@@ -161,7 +162,7 @@ func TestBumpShouldNOTWorkWhenHeadlessCheckoutOfOtherBranch(t *testing.T) {
 				assert.Equal(t, plumbing.HEAD.String(), r.Head().Name().Short())
 
 				_, err = Bump(r.Repo, increment, Options{TagPrefix: prefix, VersionedBranches: mainBranch})
-				assert.Regexp(t, "invalid headless checkout", err)
+				assert.Equal(t, fmt.Sprintf("commit %s is not on a versioned branch: master, main", latestHashOnApple.String()), err.Error())
 			})
 		}
 	}

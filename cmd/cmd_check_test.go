@@ -1,6 +1,7 @@
 package cmd_test
 
 import (
+	"fmt"
 	. "github.com/sky-uk/vergo/internal-test"
 	"github.com/sky-uk/vergo/release"
 	"github.com/stretchr/testify/assert"
@@ -27,7 +28,8 @@ func TestCheckIncrementHintSuccess(t *testing.T) {
 
 func TestCheckIncrementHintSkipHint(t *testing.T) {
 	_, tempDir := PersistentRepository(t)
-	cmd, buffer := makeCheckFail(t, release.ErrSkipRelease, release.ErrInvalidHeadless, release.ErrNoIncrement)
+	expectedError := fmt.Errorf("commit %s is not on a versioned branch: %s", "blah", "blah")
+	cmd, buffer := makeCheckFail(t, release.ErrSkipRelease, expectedError, release.ErrNoIncrement)
 	cmd.SetArgs([]string{"check", "increment-hint", "--repository-location", tempDir, "-t", "some-prefix", "--log-level", "error"})
 	err := cmd.Execute()
 	assert.Nil(t, err)
@@ -54,20 +56,22 @@ func TestCheckIncrementHintFailure(t *testing.T) {
 
 func TestCheckReleaseManyFailures(t *testing.T) {
 	_, tempDir := PersistentRepository(t)
-	cmd, buffer := makeCheckFail(t, release.ErrSkipRelease, release.ErrInvalidHeadless, success)
+	expectedError := fmt.Errorf("commit %s is not on a versioned branch: %s", "blah", "blah")
+	cmd, buffer := makeCheckFail(t, release.ErrSkipRelease, expectedError, success)
 	cmd.SetArgs([]string{"check", "release", "--repository-location", tempDir, "-t", "some-prefix", "--log-level", "error"})
 	err := cmd.Execute()
 	assert.NotNil(t, err)
 	assert.Equal(t, `Error: skip release hint present
-HEAD validation: invalid headless checkout
+commit blah is not on a versioned branch: blah
 `, readBuffer(t, buffer))
 }
 
 func TestCheckReleaseInvalidHeadless(t *testing.T) {
 	_, tempDir := PersistentRepository(t)
-	cmd, buffer := makeCheckFail(t, success, release.ErrInvalidHeadless, success)
+	expectedError := fmt.Errorf("commit %s is not on a versioned branch: %s", "blah", "blah")
+	cmd, buffer := makeCheckFail(t, success, expectedError, success)
 	cmd.SetArgs([]string{"check", "release", "--repository-location", tempDir, "-t", "some-prefix", "--log-level", "error"})
 	err := cmd.Execute()
 	assert.NotNil(t, err)
-	assert.Equal(t, "Error: HEAD validation: invalid headless checkout\n", readBuffer(t, buffer))
+	assert.Equal(t, "Error: commit blah is not on a versioned branch: blah\n", readBuffer(t, buffer))
 }

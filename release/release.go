@@ -15,10 +15,8 @@ import (
 )
 
 var (
-	ErrNoIncrement     = errors.New("increment hint not present")
-	ErrSkipRelease     = errors.New("skip release hint present")
-	ErrHEADValidation  = errors.New("HEAD validation")
-	ErrInvalidHeadless = fmt.Errorf("%w: %s", ErrHEADValidation, "invalid headless checkout")
+	ErrNoIncrement = errors.New("increment hint not present")
+	ErrSkipRelease = errors.New("skip release hint present")
 )
 
 func checkSkipHint(aString, tagPrefix string) bool {
@@ -87,7 +85,8 @@ func ValidateHEAD(repo *gogit.Repository, remoteName string, versionedBranches [
 		return err
 	}
 	log.Debugf("Current branch:%v, short: %v", head.Name(), head.Name().Short())
-	if head.Name() == plumbing.HEAD {
+	isHeadlessCheckout := head.Name() == plumbing.HEAD
+	if isHeadlessCheckout {
 		validRef := false
 		for _, mainBranchName := range versionedBranches {
 			remote, err := repo.Remote(remoteName)
@@ -120,10 +119,11 @@ func ValidateHEAD(repo *gogit.Repository, remoteName string, versionedBranches [
 			}
 		}
 		if !validRef {
-			return ErrInvalidHeadless
+			return fmt.Errorf("commit %s is not on a versioned branch: %s",
+				head.Hash(), strings.Join(versionedBranches, ", "))
 		}
 	} else if !funk.ContainsString(versionedBranches, head.Name().Short()) {
-		return fmt.Errorf("%w: branch %s is not in main branches list: %s", ErrHEADValidation,
+		return fmt.Errorf("branch %s is not in versioned branches list: %s",
 			head.Name().Short(), strings.Join(versionedBranches, ", "))
 	}
 	return nil
