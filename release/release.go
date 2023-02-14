@@ -6,6 +6,8 @@ import (
 	"github.com/Masterminds/semver/v3"
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/storer"
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"regexp"
@@ -13,10 +15,8 @@ import (
 )
 
 var (
-	ErrNoIncrement     = errors.New("increment hint not present")
-	ErrSkipRelease     = errors.New("skip release hint present")
-	ErrHEADValidation  = errors.New("HEAD validation")
-	ErrInvalidHeadless = fmt.Errorf("%w: %s", ErrHEADValidation, "invalid headless checkout")
+	ErrNoIncrement = errors.New("increment hint not present")
+	ErrSkipRelease = errors.New("skip release hint present")
 )
 
 func checkSkipHint(aString, tagPrefix string) bool {
@@ -85,7 +85,8 @@ func ValidateHEAD(repo *gogit.Repository, remoteName string, versionedBranches [
 		return err
 	}
 	log.Debugf("Current branch:%v, short: %v", head.Name(), head.Name().Short())
-	if head.Name() == plumbing.HEAD {
+	isHeadlessCheckout := head.Name() == plumbing.HEAD
+	if isHeadlessCheckout {
 		validRef := false
 		for _, mainBranchName := range versionedBranches {
 			remote, err := repo.Remote(remoteName)
@@ -102,20 +103,27 @@ func ValidateHEAD(repo *gogit.Repository, remoteName string, versionedBranches [
 			if err != nil {
 				log.WithError(err).Debugf("branchRef could not be resolved: %s\n", branchRef.String())
 			} else {
-				if revision.String() == head.Hash().String() {
+				commitOnVersionedBranch, err := isCommitOnBranch(repo, head.Hash(), branchRef)
+				if err != nil {
+					log.WithError(err).Errorf("Failed to check if commit %s is on branch %s\n",
+						head.Hash().String(), branchRef.String())
+				}
+
+				if commitOnVersionedBranch {
 					validRef = true
 					break
 				} else {
-					log.Tracef("Invalid ref [branch: %s, head: %s, ref: %s]\n",
+					log.Warnf("Commit not found on branch [branch: %s, head: %s, ref: %s]\n",
 						branchRef.String(), head.Hash().String(), revision.String())
 				}
 			}
 		}
 		if !validRef {
-			return ErrInvalidHeadless
+			return fmt.Errorf("commit %s is not on a versioned branch: %s",
+				head.Hash(), strings.Join(versionedBranches, ", "))
 		}
 	} else if !funk.ContainsString(versionedBranches, head.Name().Short()) {
-		return fmt.Errorf("%w: branch %s is not in main branches list: %s", ErrHEADValidation,
+		return fmt.Errorf("branch %s is not in versioned branches list: %s",
 			head.Name().Short(), strings.Join(versionedBranches, ", "))
 	}
 	return nil
@@ -141,4 +149,34 @@ func PreRelease(repo *gogit.Repository, options PreReleaseOptions) PreReleaseFun
 		}
 		return pre, nil
 	}
+}
+
+func isCommitOnBranch(repo *gogit.Repository, commit plumbing.Hash, branch plumbing.ReferenceName) (bool, error) {
+	branchRef, err := repo.Reference(branch, true)
+	if err != nil {
+		return false, err
+	}
+
+	branchGitLog, err := repo.Log(&gogit.LogOptions{
+		From: branchRef.Hash(),
+	})
+
+	if err != nil {
+		return false, err
+	}
+
+	reaches := false
+	err = branchGitLog.ForEach(func(branchCommit *object.Commit) error {
+		if branchCommit.Hash == commit {
+			reaches = true
+			return storer.ErrStop
+		}
+		return nil
+	})
+
+	if err != nil {
+		return false, err
+	}
+
+	return reaches, nil
 }

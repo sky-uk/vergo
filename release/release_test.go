@@ -1,6 +1,7 @@
 package release_test
 
 import (
+	"fmt"
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	. "github.com/sky-uk/vergo/internal-test"
@@ -157,7 +158,7 @@ func TestShouldFailWhenNotOnMainBranch(t *testing.T) {
 				r.BranchExists(branchName)
 				assert.Equal(t, branchName, r.Head().Name().Short())
 				err = release.ValidateHEAD(r.Repo, remoteName, mainBranch)
-				assert.Regexp(t, "branch apple is not in main branches list: master, main", err)
+				assert.Regexp(t, "branch apple is not in versioned branches list: master, main", err)
 			})
 		}
 	}
@@ -170,6 +171,25 @@ func TestShouldWorkWhenHeadlessCheckoutOfMainBranch(t *testing.T) {
 			t.Run(prefix+"-"+increment, func(t *testing.T) {
 				r := NewTestRepo(t)
 				err := r.Worktree().Checkout(&gogit.CheckoutOptions{Hash: r.Head().Hash()})
+				assert.Nil(t, err)
+				assert.Equal(t, plumbing.HEAD.String(), r.Head().Name().Short())
+
+				err = release.ValidateHEAD(r.Repo, remoteName, mainBranch)
+				assert.Nil(t, err)
+			})
+		}
+	}
+}
+
+//nolint:scopelint,paralleltest
+func TestShouldWorkWhenOnHeadlessCheckoutOfOldCommitOnMainBranch(t *testing.T) {
+	for _, prefix := range prefixes {
+		for _, increment := range increments {
+			t.Run(prefix+"-"+increment, func(t *testing.T) {
+				r := NewTestRepo(t)
+				oldCommit := r.Head().Hash()
+				r.DoCommit("foo")
+				err := r.Worktree().Checkout(&gogit.CheckoutOptions{Hash: oldCommit})
 				assert.Nil(t, err)
 				assert.Equal(t, plumbing.HEAD.String(), r.Head().Name().Short())
 
@@ -203,7 +223,7 @@ func TestShouldNOTWorkWhenHeadlessCheckoutOfOtherBranch(t *testing.T) {
 				assert.Equal(t, plumbing.HEAD.String(), r.Head().Name().Short())
 
 				err = release.ValidateHEAD(r.Repo, remoteName, mainBranch)
-				assert.Regexp(t, "invalid headless checkout", err)
+				assert.Equal(t, fmt.Sprintf("commit %s is not on a versioned branch: master, main", latestHashOnApple.String()), err.Error())
 			})
 		}
 	}
