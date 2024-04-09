@@ -90,7 +90,7 @@ func ValidateHEAD(repo *gogit.Repository, remoteName string, versionedBranches [
 		validRef := false
 		for _, mainBranchName := range versionedBranches {
 			remote, err := repo.Remote(remoteName)
-			if err != nil && err != gogit.ErrRemoteNotFound {
+			if err != nil && !errors.Is(err, gogit.ErrRemoteNotFound) {
 				return err
 			}
 			var branchRef plumbing.ReferenceName

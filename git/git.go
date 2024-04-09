@@ -9,6 +9,9 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/go-git/go-git/v5/plumbing/transport"
+	"github.com/go-git/go-git/v5/plumbing/transport/http"
+
 	"github.com/Masterminds/semver/v3"
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
@@ -118,33 +121,30 @@ type PushTagFunc func(
 func PushTag(r *gogit.Repository, version, prefix, remote string, dryRun bool, disableStrictHostChecking bool) error {
 	tag := prefix + version
 
-	socket, found := os.LookupEnv("SSH_AUTH_SOCK")
-	if !found {
+	var auth transport.AuthMethod
+
+	if githubToken, ok := os.LookupEnv("GITHUB_TOKEN"); ok {
+		log.Debug("Using Github Bearer Token Auth")
+		auth = &http.TokenAuth{
+			Token: githubToken,
+		}
+	} else if socket, ok := os.LookupEnv("SSH_AUTH_SOCK"); ok {
+		log.Debug("Using SSH Agent Authentication")
+		conn, err := net.Dial("unix", socket)
+		if err != nil {
+			log.WithError(err).Fatalln("Failed to open SSH_AUTH_SOCK")
+		}
+
+		agentClient := agent.NewClient(conn)
+		defer func() {
+			_ = conn.Close()
+		}()
+
+		sshAuth := generateSshAuth(agentClient, disableStrictHostChecking)
+
+		auth = sshAuth
+	} else {
 		return ErrUndefinedSSHAuthSock
-	}
-
-	conn, err := net.Dial("unix", socket)
-	if err != nil {
-		log.WithError(err).Fatalln("Failed to open SSH_AUTH_SOCK")
-	}
-
-	agentClient := agent.NewClient(conn)
-	defer func() {
-		_ = conn.Close()
-	}()
-
-	signers, err := agentClient.Signers()
-	if err != nil || len(signers) == 0 {
-		log.WithError(err).Fatalln("failed to get signers, make sure to add private key identities to the authentication agent")
-	}
-
-	auth := &ssh.PublicKeys{
-		User:   "git",
-		Signer: signers[0],
-	}
-
-	if disableStrictHostChecking {
-		auth.HostKeyCallback = cryptossh.InsecureIgnoreHostKey()
 	}
 
 	log.Debugf("Pushing tag: %v", tag)
@@ -159,7 +159,7 @@ func PushTag(r *gogit.Repository, version, prefix, remote string, dryRun bool, d
 	if dryRun {
 		log.Infof("Dry run: push tag %v", tag)
 	} else {
-		err = r.Push(po)
+		err := r.Push(po)
 
 		if err != nil {
 			if errors.Is(err, gogit.NoErrAlreadyUpToDate) {
@@ -171,6 +171,23 @@ func PushTag(r *gogit.Repository, version, prefix, remote string, dryRun bool, d
 		}
 	}
 	return nil
+}
+
+func generateSshAuth(agentClient agent.ExtendedAgent, disableStrictHostChecking bool) *ssh.PublicKeys {
+	signers, err := agentClient.Signers()
+	if err != nil || len(signers) == 0 {
+		log.WithError(err).Fatalln("failed to get signers, make sure to add private key identities to the authentication agent")
+	}
+
+	sshAuth := &ssh.PublicKeys{
+		User:   "git",
+		Signer: signers[0],
+	}
+
+	if disableStrictHostChecking {
+		sshAuth.HostKeyCallback = cryptossh.InsecureIgnoreHostKey()
+	}
+	return sshAuth
 }
 
 func ListRefs(repo *gogit.Repository, prefix string, direction SortDirection, maxListSize int) ([]SemverRef, error) {
