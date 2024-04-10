@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.28.0] - 09-04-2024
+Prefers to use the GITHUB_TOKEN Bearer authentication over SSH if the environment variable is present.
+This is useful when pushing tags using GitHub actions.
+
 ## [0.27.0] - 08-02-2023
 Fixed bug introduced in version `0.21.0` where `vergo bump` and `vergo check` would fail if the current commit is not 
 the latest on a versioned branch e.g. `master` or `main`.
