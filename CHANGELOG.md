@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.29.0] - 09-05-2024
+Fixed a bug with GITHUB_TOKEN authentication where pushes would fail when configured to use a GitHub token.
+
 ## [0.28.0] - 09-04-2024
 Prefers to use the GITHUB_TOKEN Bearer authentication over SSH if the environment variable is present.
 This is useful when pushing tags using GitHub actions.
