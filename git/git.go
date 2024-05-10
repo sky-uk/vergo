@@ -44,7 +44,7 @@ var (
 	ErrOneTagFound          = errors.New("one tag found")
 	ErrInvalidSortDirection = errors.New("invalid sort direction")
 	ErrPreReleaseVersion    = errors.New("invalid preReleaseVersion")
-	ErrUndefinedSSHAuthSock = errors.New("SSH_AUTH_SOCK is not defined")
+	ErrUndefinedAuth        = errors.New("no auth has been configured, GITHUB_TOKEN or SSH_AUTH_SOCK must be set")
 )
 
 func ParseSortDirection(str string) (SortDirection, error) {
@@ -125,8 +125,9 @@ func PushTag(r *gogit.Repository, version, prefix, remote string, dryRun bool, d
 
 	if githubToken, ok := os.LookupEnv("GITHUB_TOKEN"); ok {
 		log.Debug("Using Github Bearer Token Auth")
-		auth = &http.TokenAuth{
-			Token: githubToken,
+		auth = &http.BasicAuth{
+			Username: "can-be-anything",
+			Password: githubToken,
 		}
 	} else if socket, ok := os.LookupEnv("SSH_AUTH_SOCK"); ok {
 		log.Debug("Using SSH Agent Authentication")
@@ -144,7 +145,7 @@ func PushTag(r *gogit.Repository, version, prefix, remote string, dryRun bool, d
 
 		auth = sshAuth
 	} else {
-		return ErrUndefinedSSHAuthSock
+		return ErrUndefinedAuth
 	}
 
 	log.Debugf("Pushing tag: %v", tag)
