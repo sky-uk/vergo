@@ -1,7 +1,9 @@
 # Changelog
 
-## [0.29.0] - 09-05-2024
+## [0.28.1] - 09-05-2024
 Fixed a bug with GITHUB_TOKEN authentication where pushes would fail when configured to use a GitHub token.
+Fixed version of golangci-lint to work with more recent golang versions.
+
 
 ## [0.28.0] - 09-04-2024
 Prefers to use the GITHUB_TOKEN Bearer authentication over SSH if the environment variable is present.
