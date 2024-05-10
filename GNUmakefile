@@ -3,7 +3,7 @@
 export
 
 GORELEASER_VERSION := 0.179.0
-LINTER_VERSION := 1.53.3
+LINTER_VERSION := 1.58.1
 PATH := $(shell pwd)/bin:$(PATH)
 SHELL := bash
 
