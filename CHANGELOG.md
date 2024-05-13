@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.29.0] - 13-05-2024
+Allows the environment variable key that is looked up to enable token based authentication to be configurable. The default is now `GH_TOKEN`.
+
 ## [0.28.1] - 09-05-2024
 Fixed a bug with GITHUB_TOKEN authentication where pushes would fail when configured to use a GitHub token.
 Fixed version of golangci-lint to work with more recent golang versions.

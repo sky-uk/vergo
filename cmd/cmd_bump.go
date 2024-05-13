@@ -47,7 +47,7 @@ func BumpCmd(bumpFunc bump.Func, pushTag vergo.PushTagFunc) *cobra.Command {
 				return err
 			}
 			if pushTagParam {
-				err = pushTag(repo, version.String(), rootFlags.tagPrefix, rootFlags.remote, rootFlags.dryRun, rootFlags.disableStrictHostChecking)
+				err = pushTag(repo, version.String(), rootFlags.tagPrefix, rootFlags.remote, rootFlags.dryRun, rootFlags.disableStrictHostChecking, rootFlags.tokenEnvVarKey)
 				if err != nil {
 					return err
 				}

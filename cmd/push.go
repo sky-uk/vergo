@@ -24,7 +24,7 @@ func PushCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			err = vergo.PushTag(repo, ref.Version.String(), rootFlags.tagPrefix, rootFlags.remote, rootFlags.dryRun, rootFlags.disableStrictHostChecking)
+			err = vergo.PushTag(repo, ref.Version.String(), rootFlags.tagPrefix, rootFlags.remote, rootFlags.dryRun, rootFlags.disableStrictHostChecking, rootFlags.tokenEnvVarKey)
 			if err != nil {
 				return err
 			}

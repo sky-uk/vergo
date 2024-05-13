@@ -25,11 +25,11 @@ func bumpSuccess(t *testing.T) bump.Func {
 	}
 }
 
-func mockPushTagSuccess(_ *git.Repository, _, _, _ string, _ bool, _ bool) error {
+func mockPushTagSuccess(_ *git.Repository, _, _, _ string, _ bool, _ bool, _ string) error {
 	return nil
 }
 
-func mockPushTagFailure(_ *git.Repository, _, _, _ string, _ bool, _ bool) error {
+func mockPushTagFailure(_ *git.Repository, _, _, _ string, _ bool, _ bool, _ string) error {
 	return errors.New("push tag failed")
 }
 

@@ -16,3 +16,5 @@ const withMetadata = "with-metadata"
 
 const sortDirection = "sort-direction"
 const maxListSize = "max-list-size"
+
+const tokenEnvVarKey = "token-env-var-key"

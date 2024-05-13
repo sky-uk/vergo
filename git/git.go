@@ -116,14 +116,14 @@ func CreateTag(repo *gogit.Repository, version, prefix string, dryRun bool) erro
 type PushTagFunc func(
 	repo *gogit.Repository,
 	version, prefix, remote string,
-	dryRun bool, disableStrictHostChecking bool) error
+	dryRun bool, disableStrictHostChecking bool, tokenEnvVarKey string) error
 
-func PushTag(r *gogit.Repository, version, prefix, remote string, dryRun bool, disableStrictHostChecking bool) error {
+func PushTag(r *gogit.Repository, version, prefix, remote string, dryRun bool, disableStrictHostChecking bool, tokenEnvVarKey string) error {
 	tag := prefix + version
 
 	var auth transport.AuthMethod
 
-	if githubToken, ok := os.LookupEnv("GITHUB_TOKEN"); ok {
+	if githubToken, ok := os.LookupEnv(tokenEnvVarKey); ok {
 		log.Debug("Using Github Bearer Token Auth")
 		auth = &http.BasicAuth{
 			Username: "can-be-anything",
