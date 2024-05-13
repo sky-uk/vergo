@@ -21,6 +21,7 @@ func RootCmd() *cobra.Command {
 	rootCmd.PersistentFlags().StringP(repositoryLocation, "l", ".", "repository location")
 	rootCmd.PersistentFlags().String(logLevel, "Info", "set log level")
 	rootCmd.PersistentFlags().BoolP(strictHostChecking, "d", false, "disable strict host checking for git. should only be enabled on ci.")
+	rootCmd.PersistentFlags().StringP(tokenEnvVarKey, "k", "GH_TOKEN", "environment variable key to use for lookup when deciding if token based git auth should be used")
 	rootCmd.PersistentFlags().Bool(dryRun, false, "dry run")
 	rootCmd.PersistentFlags().StringSlice(versionedBranchNames, []string{"master", "main"},
 		"names of the main working branches")
@@ -30,6 +31,7 @@ func RootCmd() *cobra.Command {
 
 type RootFlags struct {
 	remote, tagPrefix, tagPrefixRaw, repositoryLocation string
+	tokenEnvVarKey                                      string
 	logLevel                                            log.Level
 	withPrefix, dryRun, disableStrictHostChecking       bool
 	versionedBranches                                   []string
@@ -68,6 +70,10 @@ func readRootFlags(cmd *cobra.Command) (*RootFlags, error) {
 	if err != nil {
 		return nil, err
 	}
+	tokenEnvVarKey, err := cmd.Flags().GetString(tokenEnvVarKey)
+	if err != nil {
+		return nil, err
+	}
 	logLevel, err := log.ParseLevel(logLevelParam)
 	if err != nil {
 		log.WithError(err).Errorln("invalid log level, using INFO instead")
@@ -85,6 +91,7 @@ func readRootFlags(cmd *cobra.Command) (*RootFlags, error) {
 		dryRun:                    dryRun,
 		withPrefix:                withPrefix,
 		disableStrictHostChecking: disableStrictHostChecking,
+		tokenEnvVarKey:            tokenEnvVarKey,
 	}, nil
 }
 

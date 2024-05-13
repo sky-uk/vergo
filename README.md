@@ -142,11 +142,37 @@ You can address the error `ssh: handshake failed: knownhosts: key is unknown ` w
 - Calling `ssh-keyscan -H github.com >> ~/.ssh/known_hosts` prior to pushing your vergo tag to introduce github to your known hosts.
 - Calling `vergo` with the `--disable-strict-host-check` flag. This should only be used on CI where known hosts are not cached.
 
-## Using GITHUB_TOKEN inside GitHub Actions
+## Authentication
 
-Vergo will first try to use Token Bearer Authentication using the GITHUB_TOKEN environment variable when running inside a GitHub Action/Workflow. It will fallback to ssh based authentication if the GITHUB_TOKEN is not present.
+Vergo supports 2 method of Git authentication:
+- SSH
+- Access token
 
-Inside github actions please ensure that the GITHUB_TOKEN environment variable is set with the `${{ secrets.GITHUB_TOKEN }}` in order to push to the current repository.
+### SSH
+
+SSH authentication is enabled when the `SSH_AUTH_SOCK` environment variable is present. To use SSH `SSH_AUTH_SOCK` will need to contain the path of the unix file socket that the SSH client uses to connect to the SSH agent.
+
+### Access token
+
+Access token authentication is enabled when an environment variable with the same key as what is configured by the `--token-env-var-key` CLI arg exists. This takes precedence over `SSH_AUTH_SOCK`, so if both are set then access token auth will be used. The configurability of `--token-env-var-key` allows the following:
+- `GITHUB_TOKEN` is set but SHOULD NOT be used by `vergo`
+- `GH_TOKEN` is set and SHOULD be used by `vergo`
+
+The above can be achieved with `vergo --token-env-var-key GH_TOKEN`.
+
+## Using token authentication inside GitHub Actions
+
+Inside GitHub Actions please ensure that the value of the `GH_TOKEN` environment variable is set to `${{ secrets.GITHUB_TOKEN }}` in order to push to the current repository. As above, `GH_TOKEN` can be changed to something else by setting `--token-env-var-key`.
+
+Example workflow job step using the provided GITHUB_TOKEN with `vergo`:
+```yaml
+      - name: Tag release
+        run: |
+          vergo check release -t my-app
+          vergo bump minor -t my-app --push-tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
 
 Please see  [token authentication](https://docs.github.com/en/actions/security-guides/automatic-token-authentication#using-the-github_token-in-a-workflow) for further details.
 
