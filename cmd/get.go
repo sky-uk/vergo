@@ -85,7 +85,7 @@ func get(latest, previous RefFunc, current vergo.CurrentVersionFunc, rootFlags *
 	case "pr", "previous-release":
 		return previous(repo, rootFlags.tagPrefix)
 	case "cv", "current-version":
-		ref, err := current(repo, rootFlags.tagPrefix, release.PreRelease(repo, release.PreReleaseOptions{WithMetadata: withMetadata}))
+		ref, err := current(repo, rootFlags.tagPrefix, release.PreRelease(repo, release.PreReleaseOptions{WithMetadata: withMetadata}), vergo.GetOptions{FirstTagEncountered: rootFlags.firstTagEncountered})
 		if errors.Is(err, plumbing.ErrReferenceNotFound) || errors.Is(err, vergo.ErrNoTagFound) {
 			return vergo.SemverRef{Version: semver.MustParse("0.0.0-SNAPSHOT")}, nil
 		}

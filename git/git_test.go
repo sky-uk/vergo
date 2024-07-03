@@ -278,7 +278,7 @@ func TestCurrentVersionTagOnTheHead(t *testing.T) {
 			err := CreateTag(r.Repo, "0.0.1", prefix, false)
 			assert.Nil(t, err)
 
-			cr, err := CurrentVersion(r.Repo, prefix, dontNeedPreRelease)
+			cr, err := CurrentVersion(r.Repo, prefix, dontNeedPreRelease, GetOptions{FirstTagEncountered: false})
 			assert.Nil(t, err)
 			assert.Equal(t, NewVersionT(t, "0.0.1").String(), cr.Version.String())
 		})
@@ -297,7 +297,7 @@ func TestCurrentVersionNoTagOnTheHead(t *testing.T) {
 			r.DoCommit("bar")
 			cr, err := CurrentVersion(r.Repo, prefix, func(version *semver.Version) (semver.Version, error) {
 				return version.IncMinor().SetPrerelease("SNAPSHOT")
-			})
+			}, GetOptions{FirstTagEncountered: false})
 			assert.Nil(t, err)
 			assert.Equal(t, SemverRef{Ref: r.Head(), Version: NewVersionT(t, "0.1.0-SNAPSHOT")}, cr)
 		})
@@ -309,7 +309,7 @@ func TestCurrentVersionNoHead(t *testing.T) {
 	for _, prefix := range prefixes {
 		t.Run(prefix, func(t *testing.T) {
 			r := NewEmptyTestRepo(t)
-			_, err := CurrentVersion(r.Repo, prefix, dontNeedPreRelease)
+			_, err := CurrentVersion(r.Repo, prefix, dontNeedPreRelease, GetOptions{FirstTagEncountered: false})
 			assert.ErrorIs(t, err, plumbing.ErrReferenceNotFound)
 		})
 	}
@@ -320,7 +320,7 @@ func TestCurrentVersionNoTag(t *testing.T) {
 	for _, prefix := range prefixes {
 		t.Run(prefix, func(t *testing.T) {
 			r := NewTestRepo(t)
-			_, err := CurrentVersion(r.Repo, prefix, dontNeedPreRelease)
+			_, err := CurrentVersion(r.Repo, prefix, dontNeedPreRelease, GetOptions{FirstTagEncountered: false})
 			assert.ErrorIs(t, err, ErrNoTagFound)
 		})
 	}
@@ -340,7 +340,7 @@ func TestCurrentVersionWithCheckoutOlderRelease(t *testing.T) {
 			assert.Nil(t, err)
 
 			{
-				cr, err := CurrentVersion(r.Repo, prefix, dontNeedPreRelease)
+				cr, err := CurrentVersion(r.Repo, prefix, dontNeedPreRelease, GetOptions{FirstTagEncountered: false})
 				assert.Nil(t, err)
 				assert.Equal(t, NewVersionT(t, "0.0.2"), cr.Version)
 			}
@@ -351,11 +351,70 @@ func TestCurrentVersionWithCheckoutOlderRelease(t *testing.T) {
 			assert.Nil(t, err)
 
 			{
-				cr, err := CurrentVersion(r.Repo, prefix, dontNeedPreRelease)
+				cr, err := CurrentVersion(r.Repo, prefix, dontNeedPreRelease, GetOptions{FirstTagEncountered: false})
 				assert.Nil(t, err)
 				assert.Equal(t, checkoutHash, cr.Ref.Hash())
 				assert.Equal(t, NewVersionT(t, "0.0.1"), cr.Version)
 			}
+		})
+	}
+}
+
+//nolint:scopelint,paralleltest
+func TestCurrentVersionWithCheckoutNewBranchWithUntaggedCommit(t *testing.T) {
+	for _, prefix := range prefixes {
+		t.Run(prefix, func(t *testing.T) {
+			r := NewTestRepo(t)
+			// Create initial tag 0.1.0
+			assert.NoError(t, CreateTag(r.Repo, "0.1.0", prefix, false))
+			initialTag := r.Head().Hash()
+
+			// Create subsequent tag 0.2.0
+			r.DoCommit("bar")
+			assert.NoError(t, CreateTag(r.Repo, "0.2.0", prefix, false))
+
+			// Validate
+			{
+				cr, err := CurrentVersion(r.Repo, prefix, dontNeedPreRelease, GetOptions{FirstTagEncountered: false})
+				assert.Nil(t, err)
+				assert.Equal(t, NewVersionT(t, "0.2.0"), cr.Version)
+			}
+
+			// Create subsequent tag 0.3.0
+			r.DoCommit("foo")
+			assert.NoError(t, CreateTag(r.Repo, "0.3.0", prefix, false))
+
+			// Validate
+			{
+				cr, err := CurrentVersion(r.Repo, prefix, dontNeedPreRelease, GetOptions{FirstTagEncountered: false})
+				assert.Nil(t, err)
+				assert.Equal(t, NewVersionT(t, "0.3.0"), cr.Version)
+			}
+
+			// Checkout to the initial tag and create a new branch hotFix
+			wt, err := r.Repo.Worktree()
+			assert.NoError(t, err)
+
+			// Checkout to specific commit hash
+			assert.NoError(t, wt.Checkout(&git.CheckoutOptions{Hash: initialTag}))
+
+			// Create and checkout new branch
+			assert.NoError(t, wt.Checkout(&git.CheckoutOptions{Branch: plumbing.NewBranchReferenceName("hotFix"), Create: true}))
+			assert.True(t, r.BranchExists("hotFix"))
+			assert.Equal(t, "hotFix", r.Head().Name().Short())
+
+			// Commit untagged changes in hotFix branch
+			r.DoCommit("untaggedCommit")
+			newBranchHead := r.Head().Hash()
+
+			// Assert current version with untagged commit
+			cr, err := CurrentVersion(r.Repo, prefix, func(version *semver.Version) (semver.Version, error) {
+				return version.IncMinor().SetPrerelease("SNAPSHOT")
+			}, GetOptions{FirstTagEncountered: true})
+			assert.NoError(t, err)
+			assert.Equal(t, newBranchHead, cr.Ref.Hash())
+			assert.Equal(t, NewVersionT(t, "0.2.0-SNAPSHOT"), cr.Version)
+
 		})
 	}
 }
@@ -379,7 +438,7 @@ func TestCurrentVersionWithAnnotatedTags(t *testing.T) {
 			assert.Nil(t, err)
 
 			{
-				cr, err := CurrentVersion(r.Repo, prefix, dontNeedPreRelease)
+				cr, err := CurrentVersion(r.Repo, prefix, dontNeedPreRelease, GetOptions{FirstTagEncountered: false})
 				assert.Nil(t, err)
 				assert.Equal(t, NewVersionT(t, "0.0.2"), cr.Version)
 			}
@@ -390,7 +449,7 @@ func TestCurrentVersionWithAnnotatedTags(t *testing.T) {
 			assert.Nil(t, err)
 
 			{
-				cr, err := CurrentVersion(r.Repo, prefix, dontNeedPreRelease)
+				cr, err := CurrentVersion(r.Repo, prefix, dontNeedPreRelease, GetOptions{FirstTagEncountered: false})
 				assert.Nil(t, err)
 				assert.Equal(t, checkoutHash, cr.Ref.Hash())
 				assert.Equal(t, NewVersionT(t, "0.0.1"), cr.Version)
@@ -428,7 +487,7 @@ func TestCurrentVersionNoTagOnTheHeadInvalidPrerelease(t *testing.T) {
 				assert.Nil(t, err)
 
 				r.DoCommit("bar")
-				_, err = CurrentVersion(r.Repo, prefix, preRelease.fn)
+				_, err = CurrentVersion(r.Repo, prefix, preRelease.fn, GetOptions{FirstTagEncountered: false})
 				assert.Regexp(t, preRelease.error, err)
 			})
 		}

@@ -3,6 +3,7 @@ package git
 import (
 	"errors"
 	"fmt"
+	"github.com/go-git/go-git/v5/plumbing/storer"
 	"net"
 	"os"
 	"regexp"
@@ -283,9 +284,13 @@ func refsWithPrefix(repo *gogit.Repository, prefix string) ([]SemverRef, error) 
 	return versions, nil
 }
 
-type CurrentVersionFunc func(repo *gogit.Repository, prefix string, preRelease release.PreReleaseFunc) (SemverRef, error)
+type GetOptions struct {
+	FirstTagEncountered bool
+}
 
-func CurrentVersion(repo *gogit.Repository, prefix string, preRelease release.PreReleaseFunc) (SemverRef, error) {
+type CurrentVersionFunc func(repo *gogit.Repository, prefix string, preRelease release.PreReleaseFunc, options GetOptions) (SemverRef, error)
+
+func CurrentVersion(repo *gogit.Repository, prefix string, preRelease release.PreReleaseFunc, options GetOptions) (SemverRef, error) {
 	head, err := repo.Head()
 	if err != nil {
 		return EmptyRef, err
@@ -294,6 +299,7 @@ func CurrentVersion(repo *gogit.Repository, prefix string, preRelease release.Pr
 	if err != nil {
 		return EmptyRef, err
 	}
+
 	for _, tagRef := range sortedTagRefs {
 		switch tagObject, err := repo.TagObject(tagRef.Ref.Hash()); {
 		case err == nil && tagObject.Target == head.Hash() && tagObject.TargetType == plumbing.CommitObject:
@@ -311,7 +317,13 @@ func CurrentVersion(repo *gogit.Repository, prefix string, preRelease release.Pr
 			return EmptyRef, err
 		}
 	}
-	latest, err := LatestRef(repo, prefix)
+
+	var latest SemverRef
+	if options.FirstTagEncountered {
+		latest, err = GetFirstMatchingTag(repo, prefix)
+	} else {
+		latest, err = LatestRef(repo, prefix)
+	}
 	if err != nil {
 		return EmptyRef, err
 	}
@@ -329,6 +341,66 @@ func CurrentVersion(repo *gogit.Repository, prefix string, preRelease release.Pr
 		Version: &preReleaseVersion,
 		Ref:     head,
 	}, nil
+}
+
+func GetFirstMatchingTag(repo *gogit.Repository, prefix string) (SemverRef, error) {
+
+	head, err := repo.Head()
+
+	commitIter, err := repo.Log(&gogit.LogOptions{From: head.Hash()})
+	if err != nil {
+		return EmptyRef, fmt.Errorf("failed to get commit log: %w", err)
+	}
+	var matchingTag string
+	var matchingRef *plumbing.Reference
+	err = commitIter.ForEach(func(commit *object.Commit) error {
+		// Get the tags pointing to this commit
+		tags, err := repo.Tags()
+		if err != nil {
+			return err
+		}
+
+		err = tags.ForEach(func(ref *plumbing.Reference) error {
+			if head.Hash() == ref.Hash() {
+				tagName := ref.Name().Short()
+				if strings.HasPrefix(tagName, prefix) {
+					matchingTag = tagName
+					matchingRef = ref
+					return storer.ErrStop
+				}
+			}
+			if ref.Hash() == commit.Hash {
+				tagName := ref.Name().Short()
+				if strings.HasPrefix(tagName, prefix) {
+					matchingTag = tagName
+					matchingRef = ref
+					return storer.ErrStop
+				}
+			}
+			return nil
+		})
+
+		if matchingTag != "" {
+			return storer.ErrStop
+		}
+		return nil
+	})
+
+	if err != nil {
+		return EmptyRef, fmt.Errorf("failed to iterate over commits: %w", err)
+	}
+
+	if matchingTag == "" {
+		return EmptyRef, ErrNoTagFound
+	}
+
+	versionString := strings.TrimPrefix(matchingTag, prefix)
+	newVersion, err := semver.NewVersion(versionString)
+	latest, err := SemverRef{
+		Version: newVersion,
+		Ref:     matchingRef,
+	}, nil
+	return latest, nil
 }
 
 func BranchExists(repo *gogit.Repository, branchName string) (bool, error) {

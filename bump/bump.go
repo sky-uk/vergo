@@ -35,10 +35,11 @@ const (
 )
 
 type Options struct {
-	TagPrefix         string
-	Remote            string
-	VersionedBranches []string
-	DryRun            bool
+	TagPrefix           string
+	Remote              string
+	VersionedBranches   []string
+	DryRun              bool
+	FirstTagEncountered bool
 }
 
 type Func func(repo *gogit.Repository, increment string, options Options) (*semver.Version, error)
@@ -52,7 +53,13 @@ func Bump(repo *gogit.Repository, increment string, options Options) (*semver.Ve
 		return nil, err
 	}
 
-	latest, err := git.LatestRef(repo, options.TagPrefix)
+	var latest git.SemverRef
+	if options.FirstTagEncountered {
+		latest, err = git.GetFirstMatchingTag(repo, options.TagPrefix)
+	} else {
+		latest, err = git.LatestRef(repo, options.TagPrefix)
+	}
+
 	if errors.Is(err, git.ErrNoTagFound) {
 		newVersion, err := semver.NewVersion(firstVersion)
 		if err != nil {
