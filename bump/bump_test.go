@@ -64,7 +64,7 @@ func TestBumpShouldFailWhenThereIsNoCommit(t *testing.T) {
 				fs := memfs.New()
 				r, err := gogit.Init(memory.NewStorage(), fs)
 				assert.Nil(t, err)
-				_, err = Bump(r, increment, Options{TagPrefix: prefix, VersionedBranches: mainBranch, FirstTagEncountered: false})
+				_, err = Bump(r, increment, Options{TagPrefix: prefix, VersionedBranches: mainBranch, NearestRelease: false})
 				assert.Regexp(t, "reference not found", err)
 			})
 		}
@@ -77,7 +77,7 @@ func TestBumpShouldCreateFirstTag(t *testing.T) {
 		for _, increment := range increments {
 			t.Run(prefix+"-"+increment, func(t *testing.T) {
 				r := NewTestRepo(t)
-				newVersion, err := Bump(r.Repo, increment, Options{TagPrefix: prefix, VersionedBranches: mainBranch, FirstTagEncountered: false})
+				newVersion, err := Bump(r.Repo, increment, Options{TagPrefix: prefix, VersionedBranches: mainBranch, NearestRelease: false})
 				assert.Nil(t, err)
 				assert.Equal(t, NewVersionT(t, firstVersion), newVersion)
 			})
@@ -92,11 +92,11 @@ func TestShouldBeAbleToCallBumpMultipleTimes(t *testing.T) {
 			t.Run(prefix+"-"+increment, func(t *testing.T) {
 				r := NewTestRepo(t)
 
-				firstCall, err := Bump(r.Repo, increment, Options{TagPrefix: prefix, VersionedBranches: mainBranch, FirstTagEncountered: false})
+				firstCall, err := Bump(r.Repo, increment, Options{TagPrefix: prefix, VersionedBranches: mainBranch, NearestRelease: false})
 				assert.Nil(t, err)
 				assert.Equal(t, NewVersionT(t, firstVersion), firstCall)
 
-				secondCall, err := Bump(r.Repo, increment, Options{TagPrefix: prefix, VersionedBranches: mainBranch, FirstTagEncountered: false})
+				secondCall, err := Bump(r.Repo, increment, Options{TagPrefix: prefix, VersionedBranches: mainBranch, NearestRelease: false})
 				assert.Nil(t, err)
 				assert.Equal(t, NewVersionT(t, firstVersion), secondCall)
 			})
@@ -115,7 +115,7 @@ func TestBumpShouldFailWhenNotOnMainBranch(t *testing.T) {
 				assert.Nil(t, err)
 				r.BranchExists(branchName)
 				assert.Equal(t, branchName, r.Head().Name().Short())
-				_, err = Bump(r.Repo, increment, Options{TagPrefix: prefix, VersionedBranches: mainBranch, FirstTagEncountered: false})
+				_, err = Bump(r.Repo, increment, Options{TagPrefix: prefix, VersionedBranches: mainBranch, NearestRelease: false})
 				assert.Regexp(t, "branch apple is not in versioned branches list: master, main", err)
 			})
 		}
@@ -132,7 +132,7 @@ func TestBumpShouldWorkWhenHeadlessCheckoutOfMainBranch(t *testing.T) {
 				assert.Nil(t, err)
 				assert.Equal(t, plumbing.HEAD.String(), r.Head().Name().Short())
 
-				_, err = Bump(r.Repo, increment, Options{TagPrefix: prefix, VersionedBranches: mainBranch, FirstTagEncountered: false})
+				_, err = Bump(r.Repo, increment, Options{TagPrefix: prefix, VersionedBranches: mainBranch, NearestRelease: false})
 				assert.Nil(t, err)
 			})
 		}
@@ -161,7 +161,7 @@ func TestBumpShouldNOTWorkWhenHeadlessCheckoutOfOtherBranch(t *testing.T) {
 				assert.Nil(t, err)
 				assert.Equal(t, plumbing.HEAD.String(), r.Head().Name().Short())
 
-				_, err = Bump(r.Repo, increment, Options{TagPrefix: prefix, VersionedBranches: mainBranch, FirstTagEncountered: false})
+				_, err = Bump(r.Repo, increment, Options{TagPrefix: prefix, VersionedBranches: mainBranch, NearestRelease: false})
 				assert.Equal(t, fmt.Sprintf("commit %s is not on a versioned branch: master, main", latestHashOnApple.String()), err.Error())
 			})
 		}
@@ -169,9 +169,9 @@ func TestBumpShouldNOTWorkWhenHeadlessCheckoutOfOtherBranch(t *testing.T) {
 }
 
 // Bumping with annotated tags is not possible under the current implementation, why test it?
-// This fails with FirstTagEncountered as true because the tag reference is not the same as the commit reference
+// This fails with NearestRelease as true because the tag reference is not the same as the commit reference
 // A new ref is generated when its annotated
-// Setting FirstTagEncountered to false to avoid failing the test
+// Setting NearestRelease to false to avoid failing the test
 //
 //nolint:scopelint,paralleltest
 func TestBumpWithAnnotatedTags(t *testing.T) {
@@ -187,7 +187,7 @@ func TestBumpWithAnnotatedTags(t *testing.T) {
 			assert.Nil(t, err)
 
 			{
-				tag, err := Bump(r.Repo, "patch", Options{TagPrefix: prefix, VersionedBranches: mainBranch, FirstTagEncountered: false})
+				tag, err := Bump(r.Repo, "patch", Options{TagPrefix: prefix, VersionedBranches: mainBranch, NearestRelease: false})
 				assert.Nil(t, err)
 				assert.Equal(t, NewVersionT(t, "0.0.1"), tag)
 			}
@@ -195,14 +195,14 @@ func TestBumpWithAnnotatedTags(t *testing.T) {
 			r.DoCommit("foo")
 			assert.Nil(t, CreateTag(r.Repo, "1.0.0", prefix, false))
 			{
-				tag, err := Bump(r.Repo, "patch", Options{TagPrefix: prefix, VersionedBranches: mainBranch, FirstTagEncountered: false})
+				tag, err := Bump(r.Repo, "patch", Options{TagPrefix: prefix, VersionedBranches: mainBranch, NearestRelease: false})
 				assert.Nil(t, err)
 				assert.Equal(t, NewVersionT(t, "1.0.0"), tag)
 			}
 
 			r.DoCommit("bar")
 			{
-				tag, err := Bump(r.Repo, "patch", Options{TagPrefix: prefix, VersionedBranches: mainBranch, FirstTagEncountered: false})
+				tag, err := Bump(r.Repo, "patch", Options{TagPrefix: prefix, VersionedBranches: mainBranch, NearestRelease: false})
 				assert.Nil(t, err)
 				assert.Equal(t, NewVersionT(t, "1.0.1"), tag)
 			}
@@ -243,9 +243,9 @@ func TestBumpWithCheckoutNewBranchWithUntaggedCommitInHotFixBranch(t *testing.T)
 
 			// Bump version in hotFix branch and validate
 			tag, err := Bump(r.Repo, "patch", Options{
-				TagPrefix:           prefix,
-				VersionedBranches:   []string{"master", "main", "hotFix"},
-				FirstTagEncountered: true,
+				TagPrefix:         prefix,
+				VersionedBranches: []string{"master", "main", "hotFix"},
+				NearestRelease:    true,
 			})
 			assert.NoError(t, err)
 			assert.Equal(t, NewVersionT(t, "0.1.1"), tag)
@@ -286,7 +286,7 @@ func TestBumpAllIncrements(t *testing.T) {
 				r := NewTestRepo(t)
 				r.CreateTag(prefix+version.pre.String(), r.Head().Hash())
 				r.DoCommit("bar")
-				tag, err := Bump(r.Repo, version.increment, Options{TagPrefix: prefix, VersionedBranches: version.versionedBranches, FirstTagEncountered: false})
+				tag, err := Bump(r.Repo, version.increment, Options{TagPrefix: prefix, VersionedBranches: version.versionedBranches, NearestRelease: false})
 				assert.Nil(t, err)
 				assert.Equal(t, *version.post, *tag)
 			})

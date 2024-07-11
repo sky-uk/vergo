@@ -2,7 +2,7 @@
 
 ## [0.30.0] - 13-05-2024
 Add Axion current behaviour when getting and bumping tag behind
-Add FirstTagEncountered flag to enable this new feature
+Add NearestRelease flag to enable this new feature
 
 ## [0.29.0] - 13-05-2024
 Allows the environment variable key that is looked up to enable token based authentication to be configurable. The default is now `GH_TOKEN`.

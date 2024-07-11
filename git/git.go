@@ -285,7 +285,7 @@ func refsWithPrefix(repo *gogit.Repository, prefix string) ([]SemverRef, error) 
 }
 
 type GetOptions struct {
-	FirstTagEncountered bool
+	NearestRelease bool
 }
 
 type CurrentVersionFunc func(repo *gogit.Repository, prefix string, preRelease release.PreReleaseFunc, options GetOptions) (SemverRef, error)
@@ -319,8 +319,8 @@ func CurrentVersion(repo *gogit.Repository, prefix string, preRelease release.Pr
 	}
 
 	var latest SemverRef
-	if options.FirstTagEncountered {
-		latest, err = GetFirstMatchingTag(repo, prefix)
+	if options.NearestRelease {
+		latest, err = NearestTag(repo, prefix)
 	} else {
 		latest, err = LatestRef(repo, prefix)
 	}
@@ -343,7 +343,7 @@ func CurrentVersion(repo *gogit.Repository, prefix string, preRelease release.Pr
 	}, nil
 }
 
-func GetFirstMatchingTag(repo *gogit.Repository, prefix string) (SemverRef, error) {
+func NearestTag(repo *gogit.Repository, prefix string) (SemverRef, error) {
 
 	head, err := repo.Head()
 
@@ -351,7 +351,7 @@ func GetFirstMatchingTag(repo *gogit.Repository, prefix string) (SemverRef, erro
 	if err != nil {
 		return EmptyRef, fmt.Errorf("failed to get commit log: %w", err)
 	}
-	var matchingTag string
+	var nearestTag string
 	var matchingRef *plumbing.Reference
 	err = commitIter.ForEach(func(commit *object.Commit) error {
 		// Get the tags pointing to this commit
@@ -364,7 +364,7 @@ func GetFirstMatchingTag(repo *gogit.Repository, prefix string) (SemverRef, erro
 			if head.Hash() == ref.Hash() {
 				tagName := ref.Name().Short()
 				if strings.HasPrefix(tagName, prefix) {
-					matchingTag = tagName
+					nearestTag = tagName
 					matchingRef = ref
 					return storer.ErrStop
 				}
@@ -372,7 +372,7 @@ func GetFirstMatchingTag(repo *gogit.Repository, prefix string) (SemverRef, erro
 			if ref.Hash() == commit.Hash {
 				tagName := ref.Name().Short()
 				if strings.HasPrefix(tagName, prefix) {
-					matchingTag = tagName
+					nearestTag = tagName
 					matchingRef = ref
 					return storer.ErrStop
 				}
@@ -380,7 +380,7 @@ func GetFirstMatchingTag(repo *gogit.Repository, prefix string) (SemverRef, erro
 			return nil
 		})
 
-		if matchingTag != "" {
+		if nearestTag != "" {
 			return storer.ErrStop
 		}
 		return nil
@@ -390,11 +390,11 @@ func GetFirstMatchingTag(repo *gogit.Repository, prefix string) (SemverRef, erro
 		return EmptyRef, fmt.Errorf("failed to iterate over commits: %w", err)
 	}
 
-	if matchingTag == "" {
+	if nearestTag == "" {
 		return EmptyRef, ErrNoTagFound
 	}
 
-	versionString := strings.TrimPrefix(matchingTag, prefix)
+	versionString := strings.TrimPrefix(nearestTag, prefix)
 	newVersion, err := semver.NewVersion(versionString)
 	latest, err := SemverRef{
 		Version: newVersion,

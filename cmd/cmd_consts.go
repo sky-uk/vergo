@@ -3,7 +3,7 @@ package cmd
 const repositoryLocation = "repository-location"
 const versionedBranchNames = "versioned-branch-names"
 const dryRun = "dry-run"
-const firstTagEncountered = "enable-first-tag-match"
+const nearestRelease = "nearest-release"
 const tagPrefix = "tag-prefix"
 const logLevel = "log-level"
 const remoteName = "remote-name"

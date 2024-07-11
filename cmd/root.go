@@ -23,7 +23,7 @@ func RootCmd() *cobra.Command {
 	rootCmd.PersistentFlags().BoolP(strictHostChecking, "d", false, "disable strict host checking for git. should only be enabled on ci.")
 	rootCmd.PersistentFlags().StringP(tokenEnvVarKey, "k", "GH_TOKEN", "environment variable key to use for lookup when deciding if token based git auth should be used")
 	rootCmd.PersistentFlags().Bool(dryRun, false, "dry run")
-	rootCmd.PersistentFlags().Bool(firstTagEncountered, false, "use first tag matched in the commit history, default use highest tag")
+	rootCmd.PersistentFlags().Bool(nearestRelease, false, "use nearest tag in the commit history, default use highest tag")
 	rootCmd.PersistentFlags().StringSlice(versionedBranchNames, []string{"master", "main"},
 		"names of the main working branches")
 	rootCmd.PersistentFlags().BoolP(withPrefix, "p", false, "returns version with prefix")
@@ -31,11 +31,11 @@ func RootCmd() *cobra.Command {
 }
 
 type RootFlags struct {
-	remote, tagPrefix, tagPrefixRaw, repositoryLocation                string
-	tokenEnvVarKey                                                     string
-	logLevel                                                           log.Level
-	withPrefix, dryRun, firstTagEncountered, disableStrictHostChecking bool
-	versionedBranches                                                  []string
+	remote, tagPrefix, tagPrefixRaw, repositoryLocation           string
+	tokenEnvVarKey                                                string
+	logLevel                                                      log.Level
+	withPrefix, dryRun, nearestRelease, disableStrictHostChecking bool
+	versionedBranches                                             []string
 }
 
 func readRootFlags(cmd *cobra.Command) (*RootFlags, error) {
@@ -51,7 +51,7 @@ func readRootFlags(cmd *cobra.Command) (*RootFlags, error) {
 	if err != nil {
 		return nil, err
 	}
-	firstTagEncountered, err := cmd.Flags().GetBool(firstTagEncountered)
+	nearestRelease, err := cmd.Flags().GetBool(nearestRelease)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func readRootFlags(cmd *cobra.Command) (*RootFlags, error) {
 		repositoryLocation:        repositoryLocation,
 		logLevel:                  logLevel,
 		dryRun:                    dryRun,
-		firstTagEncountered:       firstTagEncountered,
+		nearestRelease:            nearestRelease,
 		withPrefix:                withPrefix,
 		disableStrictHostChecking: disableStrictHostChecking,
 		tokenEnvVarKey:            tokenEnvVarKey,

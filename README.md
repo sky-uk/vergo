@@ -105,11 +105,11 @@ go install github.com/sky-uk/vergo@latest
 
 * returns the current tag/release prefixed with banana, maybe a SNAPSHOT, using the first tag matched in the commit history 
 
-  `vergo get current-version --tag-prefix=banana --enable-first-tag-match`
+  `vergo get current-version --tag-prefix=banana --nearest-release`
 
 * increments patch part of the version prefixed with banana, using the first tag matched in the commit history
 
-  `vergo bump patch --tag-prefix=banana --enable-first-tag-match`
+  `vergo bump patch --tag-prefix=banana --nearest-release`
 
 * increments patch part of the version prefixed with banana
 
