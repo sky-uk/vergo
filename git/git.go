@@ -361,15 +361,7 @@ func NearestTag(repo *gogit.Repository, prefix string) (SemverRef, error) {
 		}
 
 		err = tags.ForEach(func(ref *plumbing.Reference) error {
-			if head.Hash() == ref.Hash() {
-				tagName := ref.Name().Short()
-				if strings.HasPrefix(tagName, prefix) {
-					nearestTag = tagName
-					matchingRef = ref
-					return storer.ErrStop
-				}
-			}
-			if ref.Hash() == commit.Hash {
+			if head.Hash() == ref.Hash() || ref.Hash() == commit.Hash {
 				tagName := ref.Name().Short()
 				if strings.HasPrefix(tagName, prefix) {
 					nearestTag = tagName
