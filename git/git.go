@@ -346,6 +346,9 @@ func CurrentVersion(repo *gogit.Repository, prefix string, preRelease release.Pr
 func NearestTag(repo *gogit.Repository, prefix string) (SemverRef, error) {
 
 	head, err := repo.Head()
+	if err != nil {
+		return EmptyRef, err
+	}
 
 	commitIter, err := repo.Log(&gogit.LogOptions{From: head.Hash()})
 	if err != nil {
@@ -371,6 +374,9 @@ func NearestTag(repo *gogit.Repository, prefix string) (SemverRef, error) {
 			}
 			return nil
 		})
+		if err != nil {
+			return err
+		}
 
 		if nearestTag != "" {
 			return storer.ErrStop
@@ -388,6 +394,9 @@ func NearestTag(repo *gogit.Repository, prefix string) (SemverRef, error) {
 
 	versionString := strings.TrimPrefix(nearestTag, prefix)
 	newVersion, err := semver.NewVersion(versionString)
+	if err != nil {
+		return EmptyRef, err
+	}
 	latest, err := SemverRef{
 		Version: newVersion,
 		Ref:     matchingRef,
