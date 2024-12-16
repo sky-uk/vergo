@@ -33,7 +33,7 @@ func TestGetCurrentVersionShouldReturnDefaultVersionWhenRepoIsEmpty(t *testing.T
 	args := []string{"current-version"}
 	aliases := []string{"cv"}
 	for _, arg := range append(args, aliases...) {
-		cmd, buffer := makeGet(t, func(_ *git.Repository, _ string, _ release.PreReleaseFunc) (vergo.SemverRef, error) {
+		cmd, buffer := makeGet(t, func(_ *git.Repository, _ string, _ release.PreReleaseFunc, _ vergo.GetOptions) (vergo.SemverRef, error) {
 			return vergo.EmptyRef, plumbing.ErrReferenceNotFound
 		})
 		cmd.SetArgs([]string{"get", arg, "--repository-location", tempDir, "-t", "some-prefix", "--log-level", "error"})
@@ -49,7 +49,7 @@ func TestGetCurrentVersionShouldReturnDefaultVersionWhenNoTagFound(t *testing.T)
 	args := []string{"current-version"}
 	aliases := []string{"cv"}
 	for _, arg := range append(args, aliases...) {
-		cmd, buffer := makeGet(t, func(_ *git.Repository, _ string, _ release.PreReleaseFunc) (vergo.SemverRef, error) {
+		cmd, buffer := makeGet(t, func(_ *git.Repository, _ string, _ release.PreReleaseFunc, _ vergo.GetOptions) (vergo.SemverRef, error) {
 			return vergo.EmptyRef, vergo.ErrNoTagFound
 		})
 		cmd.SetArgs([]string{"get", arg, "--repository-location", tempDir, "-t", "some-prefix", "--log-level", "error"})

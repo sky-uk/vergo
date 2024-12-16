@@ -85,6 +85,42 @@ TestCheckIncrementWithSkipReleaseHint() (
   vergo check increment-hint --tag-prefix=apple 2>&1
 )
 
+TestBumpPatchWithNearestRelease() (
+  setup
+  mktemp "$some_temp_folder/XXXXX"
+  git add . && git commit -am"[vergo:release] a commit"
+  [[ "$(vergo bump minor --tag-prefix=apple 2>&1)" == *'0.1.0'* ]]
+
+ mktemp "$some_temp_folder/XXXXX"
+  git add . && git commit -am"[vergo:release] a commit"
+  [[ "$(vergo bump minor --tag-prefix=apple 2>&1)" == *'0.2.0'* ]]
+
+  git checkout -b hi apple-0.1.0
+  mktemp "$some_temp_folder/XXXXX"
+
+  git add . && git commit -am"[vergo:release] a commit"
+  [[ "$(vergo bump patch --nearest-release --versioned-branch-names hi --tag-prefix=apple 2>&1)" == *'0.1.1'* ]]
+
+)
+
+TestBumpPatchWithoutNearestRelease() (
+  setup
+  mktemp "$some_temp_folder/XXXXX"
+  git add . && git commit -am"[vergo:release] a commit"
+  [[ "$(vergo bump minor --tag-prefix=apple 2>&1)" == *'0.1.0'* ]]
+
+ mktemp "$some_temp_folder/XXXXX"
+  git add . && git commit -am"[vergo:release] a commit"
+  [[ "$(vergo bump minor --tag-prefix=apple 2>&1)" == *'0.2.0'* ]]
+
+  git checkout -b hi apple-0.1.0
+  mktemp "$some_temp_folder/XXXXX"
+
+  git add . && git commit -am"[vergo:release] a commit"
+  [[ "$(vergo bump patch --versioned-branch-names hi --tag-prefix=apple 2>&1)" == *'0.2.1'* ]]
+
+)
+
 tests=$(compgen -A function | grep -E '^Test')
 for fn in $tests; do
   $fn

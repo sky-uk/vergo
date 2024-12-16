@@ -107,7 +107,7 @@ func makeGet(t *testing.T, current vergo.CurrentVersionFunc) (*cobra.Command, *b
 		return vergo.SemverRef{Version: NewVersionT(t, "0.1.0")}, nil
 	}
 	if current == nil {
-		current = func(repo *git.Repository, prefix string, preRelease release.PreReleaseFunc) (vergo.SemverRef, error) {
+		current = func(repo *git.Repository, prefix string, preRelease release.PreReleaseFunc, _ vergo.GetOptions) (vergo.SemverRef, error) {
 			return vergo.SemverRef{Version: NewVersionT(t, "0.1.0")}, nil
 		}
 	}

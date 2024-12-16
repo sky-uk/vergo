@@ -42,7 +42,8 @@ func BumpCmd(bumpFunc bump.Func, pushTag vergo.PushTagFunc) *cobra.Command {
 				TagPrefix:         rootFlags.tagPrefix,
 				Remote:            rootFlags.remote,
 				VersionedBranches: rootFlags.versionedBranches,
-				DryRun:            rootFlags.dryRun})
+				DryRun:            rootFlags.dryRun,
+				NearestRelease:    rootFlags.nearestRelease})
 			if err != nil {
 				return err
 			}
