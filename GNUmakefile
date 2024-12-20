@@ -1,11 +1,11 @@
 .PHONY: fun-tests unit-tests test
 
-export
-
-GORELEASER_VERSION := 0.179.0
+GORELEASER_VERSION := 2.3.0
 LINTER_VERSION := 1.58.1
 PATH := $(shell pwd)/bin:$(PATH)
 SHELL := bash
+ARCH := $(shell uname -m)
+OS := $(shell uname -s)
 
 .ONESHELL:
 .SHELLFLAGS := -ec
@@ -31,7 +31,7 @@ bin/golangci-lint: bin
 bin/goreleaser: bin
 	@test -f $@ ||
 	(
-		curl -fsL https://github.com/goreleaser/goreleaser/releases/download/v${GORELEASER_VERSION}/goreleaser_`uname`_x86_64.tar.gz -o goreleaser.tgz
+		curl -fsL https://github.com/goreleaser/goreleaser/releases/download/v${GORELEASER_VERSION}/goreleaser_${OS}_${ARCH}.tar.gz -o goreleaser.tgz
 		tar xvf goreleaser.tgz -C bin goreleaser
 		rm goreleaser.tgz
 		bin/goreleaser --version
@@ -53,7 +53,7 @@ release: release-test check-licenses test
 	BUILT_BY="`goreleaser --version | head -n1`, `go version`" \
 	GORELEASER_CURRENT_TAG=`bin/vergo get latest-release -p` \
 	GORELEASER_PREVIOUS_TAG=`bin/vergo get previous-release -p` \
-	goreleaser release --rm-dist
+	goreleaser release --clean
 	bin/vergo push
 
 unit-tests: pre-check
@@ -72,10 +72,10 @@ test-compile:
 build: pre-check
 	BUILT_BY="`goreleaser --version | head -n1`, `go version`" \
 	GORELEASER_CURRENT_TAG=0+`git rev-parse --short HEAD` \
-	goreleaser build --snapshot --rm-dist
-	@dist/vergo_`uname | tr A-Z a-z`_amd64/vergo version
-	@cp dist/vergo_`uname | tr A-Z a-z`_amd64/vergo bin/vergo
-	@cp dist/vergo_`uname | tr A-Z a-z`_amd64/vergo /usr/local/bin/vergo 2>/dev/null || true
+	goreleaser build --snapshot --clean
+	@dist/vergo_`uname | tr A-Z a-z`_${ARCH}/vergo version
+	@cp dist/vergo_`uname | tr A-Z a-z`_${ARCH}/vergo bin/vergo
+	@cp dist/vergo_`uname | tr A-Z a-z`_${ARCH}/vergo /usr/local/bin/vergo 2>/dev/null || true
 
 dependency-updates:
 	@go list -u -f '{{if (and (not (or .Main .Indirect)) .Update)}}{{.Path}}: {{.Version}} -> {{.Update.Version}}{{end}}' -m all
