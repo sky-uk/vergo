@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.30.0] - 13-05-2024
+## [0.30.0] - 20-12-2024
 Add Axion current behaviour when getting and bumping tag behind
 Add NearestRelease flag to enable this new feature
 Bumped goreleaser in order to release arm64 binaries
