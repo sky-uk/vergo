@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+
 	"github.com/Masterminds/semver/v3"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -57,7 +58,11 @@ func GetCmd(latest, previous RefFunc, current vergo.CurrentVersionFunc) *cobra.C
 			if err != nil {
 				return err
 			}
-			ref, err := get(latest, previous, current, rootFlags, modifier, withMetadata)
+			increment, err := cmd.Flags().GetString(increment)
+			if err != nil {
+				return err
+			}
+			ref, err := get(latest, previous, current, rootFlags, modifier, withMetadata, increment)
 			if err != nil {
 				return err
 			}
@@ -70,10 +75,11 @@ func GetCmd(latest, previous RefFunc, current vergo.CurrentVersionFunc) *cobra.C
 		},
 	}
 	cmd.Flags().BoolP(withMetadata, "m", false, "returns current version with commit hash as metadata")
+	cmd.Flags().StringP(increment, "i", "minor", "uses the specified increment strategy to compute the current version as necessary")
 	return cmd
 }
 
-func get(latest, previous RefFunc, current vergo.CurrentVersionFunc, rootFlags *RootFlags, modifier string, withMetadata bool) (vergo.SemverRef, error) {
+func get(latest, previous RefFunc, current vergo.CurrentVersionFunc, rootFlags *RootFlags, modifier string, withMetadata bool, increment string) (vergo.SemverRef, error) {
 	repo, err := git.PlainOpenWithOptions(rootFlags.repositoryLocation, &git.PlainOpenOptions{DetectDotGit: true})
 	if err != nil {
 		return vergo.EmptyRef, err
@@ -85,7 +91,12 @@ func get(latest, previous RefFunc, current vergo.CurrentVersionFunc, rootFlags *
 	case "pr", "previous-release":
 		return previous(repo, rootFlags.tagPrefix)
 	case "cv", "current-version":
-		ref, err := current(repo, rootFlags.tagPrefix, release.PreRelease(repo, release.PreReleaseOptions{WithMetadata: withMetadata}), vergo.GetOptions{NearestRelease: rootFlags.nearestRelease})
+		ref, err := current(
+			repo,
+			rootFlags.tagPrefix,
+			release.PreRelease(repo, release.PreReleaseOptions{WithMetadata: withMetadata, Increment: increment}),
+			vergo.GetOptions{NearestRelease: rootFlags.nearestRelease},
+		)
 		if errors.Is(err, plumbing.ErrReferenceNotFound) || errors.Is(err, vergo.ErrNoTagFound) {
 			return vergo.SemverRef{Version: semver.MustParse("0.0.0-SNAPSHOT")}, nil
 		}

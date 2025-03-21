@@ -3,6 +3,9 @@ package release
 import (
 	"errors"
 	"fmt"
+	"regexp"
+	"strings"
+
 	"github.com/Masterminds/semver/v3"
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -10,13 +13,12 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
-	"regexp"
-	"strings"
 )
 
 var (
-	ErrNoIncrement = errors.New("increment hint not present")
-	ErrSkipRelease = errors.New("skip release hint present")
+	ErrInvalidIncrement = errors.New("increment strategy is invalid")
+	ErrNoIncrement      = errors.New("increment hint not present")
+	ErrSkipRelease      = errors.New("skip release hint present")
 )
 
 func checkSkipHint(aString, tagPrefix string) bool {
@@ -132,14 +134,32 @@ func ValidateHEAD(repo *gogit.Repository, remoteName string, versionedBranches [
 type PreReleaseFunc func(version *semver.Version) (semver.Version, error)
 type PreReleaseOptions struct {
 	WithMetadata bool
+	Increment    string
 }
 
 func PreRelease(repo *gogit.Repository, options PreReleaseOptions) PreReleaseFunc {
 	return func(version *semver.Version) (semver.Version, error) {
-		pre, err := version.IncMinor().SetPrerelease("SNAPSHOT")
+		var pre semver.Version
+		var err error
+		switch strings.ToLower(options.Increment) {
+		case "patch":
+			pre = version.IncPatch()
+		case "", "minor":
+			pre = version.IncMinor()
+		case "major":
+			pre = version.IncMajor()
+		default:
+			err = fmt.Errorf("%w : %s", ErrInvalidIncrement, options.Increment)
+		}
 		if err != nil {
 			return semver.Version{}, err
 		}
+
+		pre, err = pre.SetPrerelease("SNAPSHOT")
+		if err != nil {
+			return semver.Version{}, err
+		}
+
 		if options.WithMetadata {
 			head, err := repo.Head()
 			if err != nil {
@@ -147,6 +167,7 @@ func PreRelease(repo *gogit.Repository, options PreReleaseOptions) PreReleaseFun
 			}
 			return pre.SetMetadata(head.Hash().String()[0:7])
 		}
+
 		return pre, nil
 	}
 }
