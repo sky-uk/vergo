@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.31.0] - TBD
+Enables vergo clients to specify the version increment strategy when computing
+the current version through `vergo get cv`
+
 ## [0.30.0] - 20-12-2024
 Add Axion current behaviour when getting and bumping tag behind
 Add NearestRelease flag to enable this new feature

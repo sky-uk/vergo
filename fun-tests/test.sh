@@ -71,6 +71,11 @@ fi
 [[ "$(vergo get cv --tag-prefix=app)" == "0.2.0-SNAPSHOT" ]]
 [[ "$(vergo get cv --tag-prefix=orange/v)" == "2.4.0-SNAPSHOT" ]]
 
+#test get current-version with increment strategy provided
+[[ "$(vergo get cv --tag-prefix=apple --increment=patch)" == "0.1.2-SNAPSHOT" ]]
+[[ "$(vergo get cv --tag-prefix=apple --increment=minor)" == "0.2.0-SNAPSHOT" ]]
+[[ "$(vergo get cv --tag-prefix=apple --increment=major)" == "1.0.0-SNAPSHOT" ]]
+
 #test get current-version with prefix included in the output
 [[ "$(vergo get cv --tag-prefix=apple -p)" == "apple-0.2.0-SNAPSHOT" ]]
 [[ "$(vergo get cv --tag-prefix=app -p)" == "app-0.2.0-SNAPSHOT" ]]

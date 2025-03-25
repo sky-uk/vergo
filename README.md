@@ -103,6 +103,10 @@ go install github.com/sky-uk/vergo@latest
 
   `vergo get current-version --tag-prefix=banana`
 
+* returns the current tag/release prefixed with banana, bumping to the next major version if HEAD is not on tag, maybe a SNAPSHOT
+
+  `vergo get current-version --increment=major --tag-prefix=banana`
+
 * returns the current tag/release prefixed with banana, maybe a SNAPSHOT, using the first tag matched in the commit history 
 
   `vergo get current-version --tag-prefix=banana --nearest-release`
