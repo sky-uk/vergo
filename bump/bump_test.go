@@ -20,7 +20,7 @@ const firstVersion = "0.1.0"
 
 var (
 	prefixes   = []string{"", "app", "application", "app/v"}
-	increments = []string{"patch", "minor", "major"}
+	increments = []string{"prerelease", "patch", "minor", "major"}
 	mainBranch = []string{"master", "main"}
 )
 
@@ -31,6 +31,16 @@ func TestShouldIncrementVersion(t *testing.T) {
 		pre       *semver.Version
 		post      *semver.Version
 	}{
+		{
+			increment: "prerelease",
+			pre:       NewVersionT(t, "v0.1.0"),
+			post:      NewVersionT(t, "v0.1.0-alpha1"),
+		},
+		{
+			increment: "prerelease",
+			pre:       NewVersionT(t, "v0.1.0-alpha5"),
+			post:      NewVersionT(t, "v0.1.0-alpha6"),
+		},
 		{
 			increment: "patch",
 			pre:       NewVersionT(t, "v0.1.0"),
@@ -261,6 +271,18 @@ func TestBumpAllIncrements(t *testing.T) {
 		pre               *semver.Version
 		post              *semver.Version
 	}{
+		{
+			increment:         "prerelease",
+			versionedBranches: mainBranch,
+			pre:               NewVersionT(t, "0.1.0"),
+			post:              NewVersionT(t, "0.1.0-alpha1"),
+		},
+		{
+			increment:         "prerelease",
+			versionedBranches: mainBranch,
+			pre:               NewVersionT(t, "0.1.0-alpha2"),
+			post:              NewVersionT(t, "0.1.0-alpha3"),
+		},
 		{
 			increment:         "patch",
 			versionedBranches: mainBranch,

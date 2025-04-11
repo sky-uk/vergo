@@ -11,10 +11,10 @@ import (
 
 func BumpCmd(bumpFunc bump.Func, pushTag vergo.PushTagFunc) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:       "release (patch|minor|major|auto)",
+		Use:       "release (prerelease|patch|minor|major|auto)",
 		Short:     "increments the version numbers",
 		Args:      cobra.ExactValidArgs(1),
-		ValidArgs: []string{"patch", "minor", "major", "auto"},
+		ValidArgs: []string{"prerelease", "patch", "minor", "major", "auto"},
 		Aliases:   []string{"bump"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			increment := args[0]

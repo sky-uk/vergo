@@ -49,13 +49,16 @@ func SkipHintPresent(repo *gogit.Repository, tagPrefixRaw string) error {
 func checkIncrementHint(aString, tagPrefixRaw string) (string, error) {
 	var re *regexp.Regexp
 	if tagPrefixRaw == "" {
-		re = regexp.MustCompile("vergo:(major|minor|patch)-release")
+		re = regexp.MustCompile("vergo:(major|minor|patch|pre)-release")
 	} else {
-		re = regexp.MustCompile("vergo:" + tagPrefixRaw + ":(major|minor|patch)-release")
+		re = regexp.MustCompile("vergo:" + tagPrefixRaw + ":(major|minor|patch|pre)-release")
 	}
 	match := re.FindStringSubmatch(aString)
 	if len(match) != 2 {
 		return "", fmt.Errorf("%w: %s", ErrNoIncrement, tagPrefixRaw)
+	}
+	if match[1] == "pre" {
+		return "prerelease", nil
 	}
 	return match[1], nil
 }
