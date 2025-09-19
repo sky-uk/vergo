@@ -547,3 +547,90 @@ func TestList(t *testing.T) {
 		})
 	}
 }
+
+//nolint:paralleltest
+func TestNearestTagPrefixMatching(t *testing.T) {
+	t.Run("exact prefix matching avoids false matches", func(t *testing.T) {
+		r := NewTestRepo(t)
+
+		// Create tags with common prefix
+		r.CreateTag("app-backend-0.4.5", r.Head().Hash())
+		r.CreateTag("app-backend-kotlin-0.4.5", r.Head().Hash())
+
+		// Test that NearestTag finds the correct tag for "app-backend" prefix
+		nearestRef, err := NearestTag(r.Repo, "app-backend-")
+		assert.Nil(t, err)
+		assert.Equal(t, NewVersionT(t, "0.4.5").String(), nearestRef.Version.String())
+		assert.Equal(t, "app-backend-0.4.5", nearestRef.Ref.Name().Short())
+	})
+
+	t.Run("no false matches with similar prefixes", func(t *testing.T) {
+		r := NewTestRepo(t)
+
+		// Create multiple similar tags
+		r.CreateTag("app-backend-0.4.5", r.Head().Hash())
+		r.CreateTag("app-backend-kotlin-0.4.5", r.Head().Hash())
+		r.CreateTag("app-backend-java-1.0.0", r.Head().Hash())
+		r.CreateTag("app-frontend-2.0.0", r.Head().Hash())
+
+		// Test exact prefix matching for "app-backend-"
+		nearestRef, err := NearestTag(r.Repo, "app-backend-")
+		assert.Nil(t, err)
+		assert.Equal(t, NewVersionT(t, "0.4.5").String(), nearestRef.Version.String())
+		assert.Equal(t, "app-backend-0.4.5", nearestRef.Ref.Name().Short())
+
+		// Test that "app-backend-kotlin-" finds only the kotlin tag
+		nearestRefKotlin, err := NearestTag(r.Repo, "app-backend-kotlin-")
+		assert.Nil(t, err)
+		assert.Equal(t, NewVersionT(t, "0.4.5").String(), nearestRefKotlin.Version.String())
+		assert.Equal(t, "app-backend-kotlin-0.4.5", nearestRefKotlin.Ref.Name().Short())
+
+		// Test that "app-frontend-" finds only the frontend tag
+		nearestRefFrontend, err := NearestTag(r.Repo, "app-frontend-")
+		assert.Nil(t, err)
+		assert.Equal(t, NewVersionT(t, "2.0.0").String(), nearestRefFrontend.Version.String())
+		assert.Equal(t, "app-frontend-2.0.0", nearestRefFrontend.Ref.Name().Short())
+	})
+
+	t.Run("no match when prefix has no exact semantic version tags", func(t *testing.T) {
+		r := NewTestRepo(t)
+
+		// Create tags that don't match the prefix exactly
+		r.CreateTag("app-backend-kotlin-0.4.5", r.Head().Hash())
+		r.CreateTag("app-backend-java-1.0.0", r.Head().Hash())
+
+		// Test that "app-backend-" finds no matches (no exact prefix match)
+		_, err := NearestTag(r.Repo, "app-backend-")
+		assert.ErrorIs(t, err, ErrNoTagFound)
+	})
+
+	t.Run("works with different commit history", func(t *testing.T) {
+		r := NewTestRepo(t)
+
+		// Create initial tag
+		firstCommit := r.Head().Hash()
+		r.CreateTag("service-0.1.0", firstCommit)
+		r.CreateTag("service-kotlin-0.1.0", firstCommit)
+
+		// Create second commit and add more tags
+		r.DoCommit("second commit")
+		secondCommit := r.Head().Hash()
+		r.CreateTag("service-0.2.0", secondCommit)
+		r.CreateTag("service-kotlin-0.2.0", secondCommit)
+
+		// Create third commit without tags
+		r.DoCommit("third commit")
+
+		// NearestTag should find the most recent tag in commit history
+		nearestRef, err := NearestTag(r.Repo, "service-")
+		assert.Nil(t, err)
+		assert.Equal(t, NewVersionT(t, "0.2.0").String(), nearestRef.Version.String())
+		assert.Equal(t, "service-0.2.0", nearestRef.Ref.Name().Short())
+
+		// Check kotlin prefix separately
+		nearestRefKotlin, err := NearestTag(r.Repo, "service-kotlin-")
+		assert.Nil(t, err)
+		assert.Equal(t, NewVersionT(t, "0.2.0").String(), nearestRefKotlin.Version.String())
+		assert.Equal(t, "service-kotlin-0.2.0", nearestRefKotlin.Ref.Name().Short())
+	})
+}

@@ -350,6 +350,9 @@ func NearestTag(repo *gogit.Repository, prefix string) (SemverRef, error) {
 		return EmptyRef, err
 	}
 
+	tagPrefix := refTagPrefix + prefix
+	re := regexp.MustCompile("^" + tagPrefix + semVerRegex + "$")
+
 	commitIter, err := repo.Log(&gogit.LogOptions{From: head.Hash()})
 	if err != nil {
 		return EmptyRef, fmt.Errorf("failed to get commit log: %w", err)
@@ -365,9 +368,9 @@ func NearestTag(repo *gogit.Repository, prefix string) (SemverRef, error) {
 
 		err = tags.ForEach(func(ref *plumbing.Reference) error {
 			if head.Hash() == ref.Hash() || ref.Hash() == commit.Hash {
-				tagName := ref.Name().Short()
-				if strings.HasPrefix(tagName, prefix) {
-					nearestTag = tagName
+				tagName := ref.Name().String()
+				if re.MatchString(tagName) {
+					nearestTag = ref.Name().Short()
 					matchingRef = ref
 					return storer.ErrStop
 				}
