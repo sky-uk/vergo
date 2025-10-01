@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.30.1] - 19-09-2025
+Fixed NearestTag function to use exact prefix matching with regex patterns instead of simple prefix checking. 
+This prevents false matches when tags have additional suffixes (e.g., searching for `app-backend` no longer incorrectly matches `app-backend-kotlin-0.4.5`).
+
 ## [0.30.0] - 20-12-2024
 Add Axion current behaviour when getting and bumping tag behind
 Add NearestRelease flag to enable this new feature
