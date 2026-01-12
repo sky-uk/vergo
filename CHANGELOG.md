@@ -1,7 +1,9 @@
 # Changelog
 
-## [0.x.0] - xx-xx-2025
+## [0.31.0] - 12-01-2026
 Add ability to create an "alpha" pre-release version
+Nearest Tag now accounts for annotated tags as well as lightweight tags
+Fixed NearestTag function to use exact prefix matching with regex patterns instead of simple prefix checking.
 
 ## [0.30.0] - 20-12-2024
 Add Axion current behaviour when getting and bumping tag behind

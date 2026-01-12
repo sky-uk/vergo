@@ -841,6 +841,8 @@ func TestNearestTagPerformance(t *testing.T) {
 	r := NewTestRepo(t)
 	prefix := "perf-"
 	err := CreateTag(r.Repo, "1.0.0", prefix, false) //Create perf-1.0.0 tag
+	assert.NoError(t, err)
+
 	// Create many commits to simulate performance scenario
 	numCommits := 5000
 	for i := 1; i <= numCommits; i++ { //Create 1000 commits with other tag
