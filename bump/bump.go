@@ -9,6 +9,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/sky-uk/vergo/git"
 	"github.com/sky-uk/vergo/release"
+	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -18,6 +20,8 @@ var (
 
 func NextVersion(increment string, version semver.Version) (incrementedVersion semver.Version, err error) {
 	switch strings.ToLower(increment) {
+	case "prerelease":
+		incrementedVersion = NextPreRelease(version)
 	case "patch":
 		incrementedVersion = version.IncPatch()
 	case "minor":
@@ -27,6 +31,25 @@ func NextVersion(increment string, version semver.Version) (incrementedVersion s
 	default:
 		err = fmt.Errorf("%w : %s", ErrUnknownIncrementor, increment)
 	}
+	return
+}
+
+func NextPreRelease(version semver.Version) (incrementedVersion semver.Version) {
+	var currentPreRelease = version.Prerelease()
+	if currentPreRelease == "" {
+		incrementedVersion, _ = version.SetPrerelease("alpha1")
+	} else {
+		suffix, num := ParsePreRelease(currentPreRelease)
+		incrementedVersion, _ = version.SetPrerelease(fmt.Sprintf(suffix+"%d", num+1))
+	}
+	return
+}
+
+func ParsePreRelease(preRelease string) (suffix string, number int) {
+	re := regexp.MustCompile(`([a-zA-Z]+)(\d+)`)
+	match := re.FindStringSubmatch(preRelease)
+	suffix = match[1]
+	number, _ = strconv.Atoi(match[2])
 	return
 }
 

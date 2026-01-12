@@ -11,7 +11,7 @@ import (
 
 var (
 	prefixes   = []string{"", "app", "application", "app/v"}
-	increments = []string{"patch", "minor", "major"}
+	increments = []string{"prerelease", "patch", "minor", "major"}
 )
 
 //nolint:scopelint,paralleltest
@@ -30,7 +30,7 @@ func TestBumpShouldWorkWithIncrements(t *testing.T) {
 
 //nolint:scopelint,paralleltest
 func TestBumpShouldWorkWithAutoIncrement(t *testing.T) {
-	nextVersion := []string{"0.1.1", "0.2.0", "1.0.0"}
+	nextVersion := []string{"0.1.0-alpha1", "0.1.1", "0.2.0", "1.0.0"}
 	for _, prefix := range prefixes {
 		for i, increment := range increments {
 			t.Run(prefix+"-"+increment, func(t *testing.T) {
@@ -46,10 +46,14 @@ func TestBumpShouldWorkWithAutoIncrement(t *testing.T) {
 				}
 
 				{
+					hint := increment
+					if increment == "prerelease" {
+						hint = "pre"
+					}
 					if prefix == "" {
-						DoCommitWithMessage(t, repo, "some file", fmt.Sprintf("vergo:%s-release", increment))
+						DoCommitWithMessage(t, repo, "some file", fmt.Sprintf("vergo:%s-release", hint))
 					} else {
-						DoCommitWithMessage(t, repo, "some file", fmt.Sprintf("vergo:%s:%s-release", prefix, increment))
+						DoCommitWithMessage(t, repo, "some file", fmt.Sprintf("vergo:%s:%s-release", prefix, hint))
 					}
 
 					cmd, buffer := makeBumpFunc(t, bump.Bump)

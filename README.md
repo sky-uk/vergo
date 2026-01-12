@@ -107,6 +107,10 @@ go install github.com/sky-uk/vergo@latest
 
   `vergo get current-version --tag-prefix=banana --nearest-release`
 
+* increments pre-release part of the version prefixed with banana, initialised with alpha1 if not present
+
+  `vergo bump prerelease --tag-prefix=banana`
+
 * increments patch part of the version prefixed with banana, using the first tag matched in the commit history
 
   `vergo bump patch --tag-prefix=banana --nearest-release`
@@ -141,7 +145,7 @@ go install github.com/sky-uk/vergo@latest
   ```
 * automatic increment by reading the last commit message. if the latest commit message includes `[vergo:app:major-release]` string then auto will be translated to `major`
   ```
-    vergo bump auto -t app #will look for patch/minor/major in commit message
+    vergo bump auto -t app #will look for patch/minor/major/prerelease in commit message
   ```
 
 ## Strict Host Checking

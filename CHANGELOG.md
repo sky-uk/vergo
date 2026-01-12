@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.x.0] - xx-xx-2025
+Add ability to create an "alpha" pre-release version
+
 ## [0.30.0] - 20-12-2024
 Add Axion current behaviour when getting and bumping tag behind
 Add NearestRelease flag to enable this new feature
