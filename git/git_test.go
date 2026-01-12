@@ -423,37 +423,97 @@ func TestCurrentVersionWithCheckoutNewBranchWithUntaggedCommit(t *testing.T) {
 func TestCurrentVersionWithAnnotatedTags(t *testing.T) {
 	for _, prefix := range prefixes {
 		t.Run(prefix, func(t *testing.T) {
-			r := NewTestRepo(t)
-			tagger := &object.Signature{
-				Name:  "test",
-				Email: "test@test.com",
-				When:  time.Now(),
-			}
-			err := CreateTagWithMessage(r.Repo, "0.0.1", prefix, "test message", tagger, false)
-			assert.Nil(t, err)
-			checkoutHash := r.Head().Hash()
-
-			r.DoCommit("bar")
-			err = CreateTagWithMessage(r.Repo, "0.0.2", prefix, "test message", tagger, false)
-			assert.Nil(t, err)
-
-			{
-				cr, err := CurrentVersion(r.Repo, prefix, dontNeedPreRelease, GetOptions{NearestRelease: false})
+			t.Run("checkout older release", func(t *testing.T) {
+				r := NewTestRepo(t)
+				tagger := &object.Signature{
+					Name:  "test",
+					Email: "test@test.com",
+					When:  time.Now(),
+				}
+				err := CreateTagWithMessage(r.Repo, "0.0.1", prefix, "test message", tagger, false)
 				assert.Nil(t, err)
-				assert.Equal(t, NewVersionT(t, "0.0.2"), cr.Version)
-			}
+				checkoutHash := r.Head().Hash()
 
-			wt, err := r.Repo.Worktree()
-			assert.Nil(t, err)
-			err = wt.Checkout(&git.CheckoutOptions{Hash: checkoutHash})
-			assert.Nil(t, err)
-
-			{
-				cr, err := CurrentVersion(r.Repo, prefix, dontNeedPreRelease, GetOptions{NearestRelease: false})
+				r.DoCommit("bar")
+				err = CreateTagWithMessage(r.Repo, "0.0.2", prefix, "test message", tagger, false)
 				assert.Nil(t, err)
-				assert.Equal(t, checkoutHash, cr.Ref.Hash())
-				assert.Equal(t, NewVersionT(t, "0.0.1"), cr.Version)
-			}
+
+				{
+					cr, err := CurrentVersion(r.Repo, prefix, dontNeedPreRelease, GetOptions{NearestRelease: false})
+					assert.Nil(t, err)
+					assert.Equal(t, NewVersionT(t, "0.0.2"), cr.Version)
+				}
+
+				wt, err := r.Repo.Worktree()
+				assert.Nil(t, err)
+				err = wt.Checkout(&git.CheckoutOptions{Hash: checkoutHash})
+				assert.Nil(t, err)
+
+				{
+					cr, err := CurrentVersion(r.Repo, prefix, dontNeedPreRelease, GetOptions{NearestRelease: false})
+					assert.Nil(t, err)
+					assert.Equal(t, checkoutHash, cr.Ref.Hash())
+					assert.Equal(t, NewVersionT(t, "0.0.1"), cr.Version)
+				}
+			})
+
+			t.Run("NewBranchWithUntaggedCommit", func(t *testing.T) {
+				r := NewTestRepo(t)
+				tagger := &object.Signature{
+					Name:  "test",
+					Email: "test@test.com",
+					When:  time.Now(),
+				}
+				// Create initial tag 0.1.0
+				assert.NoError(t, CreateTagWithMessage(r.Repo, "0.1.0", prefix, "test message", tagger, false))
+				initialTag := r.Head().Hash()
+
+				// Create subsequent tag 0.2.0
+				r.DoCommit("bar")
+				assert.NoError(t, CreateTagWithMessage(r.Repo, "0.2.0", prefix, "test message", tagger, false))
+
+				// Validate
+				{
+					cr, err := CurrentVersion(r.Repo, prefix, dontNeedPreRelease, GetOptions{NearestRelease: false})
+					assert.Nil(t, err)
+					assert.Equal(t, NewVersionT(t, "0.2.0"), cr.Version)
+				}
+
+				// Create subsequent tag 0.3.0
+				r.DoCommit("foo")
+				assert.NoError(t, CreateTagWithMessage(r.Repo, "0.3.0", prefix, "test message", tagger, false))
+
+				// Validate
+				{
+					cr, err := CurrentVersion(r.Repo, prefix, dontNeedPreRelease, GetOptions{NearestRelease: false})
+					assert.Nil(t, err)
+					assert.Equal(t, NewVersionT(t, "0.3.0"), cr.Version)
+				}
+
+				// Checkout to the initial tag and create a new branch hotFix
+				wt, err := r.Repo.Worktree()
+				assert.NoError(t, err)
+
+				// Checkout to specific commit hash
+				assert.NoError(t, wt.Checkout(&git.CheckoutOptions{Hash: initialTag}))
+
+				// Create and checkout new branch
+				assert.NoError(t, wt.Checkout(&git.CheckoutOptions{Branch: plumbing.NewBranchReferenceName("hotFix"), Create: true}))
+				assert.True(t, r.BranchExists("hotFix"))
+				assert.Equal(t, "hotFix", r.Head().Name().Short())
+
+				// Commit untagged changes in hotFix branch
+				r.DoCommit("untaggedCommit")
+				newBranchHead := r.Head().Hash()
+
+				// Assert current version with untagged commit
+				cr, err := CurrentVersion(r.Repo, prefix, func(version *semver.Version) (semver.Version, error) {
+					return version.IncMinor().SetPrerelease("SNAPSHOT")
+				}, GetOptions{NearestRelease: true})
+				assert.NoError(t, err)
+				assert.Equal(t, newBranchHead, cr.Ref.Hash())
+				assert.Equal(t, NewVersionT(t, "0.2.0-SNAPSHOT"), cr.Version)
+			})
 		})
 	}
 }
@@ -546,4 +606,265 @@ func TestList(t *testing.T) {
 			})
 		})
 	}
+}
+
+//nolint:scopelint,paralleltest
+func TestNearestTag(t *testing.T) {
+	for _, prefix := range prefixes {
+		t.Run(prefix, func(t *testing.T) {
+			t.Run("no tags", func(t *testing.T) {
+				r := NewTestRepo(t)
+				_, err := NearestTag(r.Repo, prefix)
+				assert.ErrorIs(t, err, ErrNoTagFound)
+			})
+
+			t.Run("tag on HEAD", func(t *testing.T) {
+				r := NewTestRepo(t)
+				err := CreateTag(r.Repo, "1.0.0", prefix, false)
+				assert.NoError(t, err)
+
+				nearest, err := NearestTag(r.Repo, prefix)
+				assert.NoError(t, err)
+				assert.Equal(t, NewVersionT(t, "1.0.0"), nearest.Version)
+				assert.Equal(t, r.Head().Hash(), nearest.Ref.Hash())
+			})
+
+			t.Run("multiple tags on same commit", func(t *testing.T) {
+				r := NewTestRepo(t)
+				err := CreateTag(r.Repo, "1.0.0", prefix, false)
+				assert.NoError(t, err)
+				err = CreateTag(r.Repo, "1.0.0-rc1", prefix, false)
+				assert.NoError(t, err)
+
+				nearest, err := NearestTag(r.Repo, prefix)
+				assert.NoError(t, err)
+				// Should return highest semantic version
+				assert.Equal(t, NewVersionT(t, "1.0.0"), nearest.Version)
+			})
+
+			t.Run("tag in commit history", func(t *testing.T) {
+				r := NewTestRepo(t)
+				err := CreateTag(r.Repo, "1.0.0", prefix, false)
+				assert.NoError(t, err)
+				taggedCommit := r.Head().Hash()
+
+				// Make commits without tags
+				r.DoCommit("commit1")
+				r.DoCommit("commit2")
+
+				nearest, err := NearestTag(r.Repo, prefix)
+				assert.NoError(t, err)
+				assert.Equal(t, NewVersionT(t, "1.0.0"), nearest.Version)
+				assert.Equal(t, taggedCommit, nearest.Ref.Hash())
+			})
+
+			t.Run("multiple tags in history", func(t *testing.T) {
+				r := NewTestRepo(t)
+
+				// Create first tag
+				err := CreateTag(r.Repo, "1.0.0", prefix, false)
+				assert.NoError(t, err)
+
+				r.DoCommit("commit1")
+
+				// Create second tag
+				err = CreateTag(r.Repo, "2.0.0", prefix, false)
+				assert.NoError(t, err)
+				secondTagCommit := r.Head().Hash()
+
+				r.DoCommit("commit2")
+
+				nearest, err := NearestTag(r.Repo, prefix)
+				assert.NoError(t, err)
+				// Should find nearest (2.0.0), not latest semantically
+				assert.Equal(t, NewVersionT(t, "2.0.0"), nearest.Version)
+				assert.Equal(t, secondTagCommit, nearest.Ref.Hash())
+			})
+
+			t.Run("branch scenario", func(t *testing.T) {
+				r := NewTestRepo(t)
+
+				// Create tag on main branch
+				err := CreateTag(r.Repo, "1.0.0", prefix, false)
+				assert.NoError(t, err)
+				mainTagCommit := r.Head().Hash()
+
+				// Create more commits on main
+				r.DoCommit("main-commit1")
+				err = CreateTag(r.Repo, "2.0.0", prefix, false)
+				assert.NoError(t, err)
+
+				// Checkout to earlier commit and create branch
+				wt, err := r.Repo.Worktree()
+				assert.NoError(t, err)
+				err = wt.Checkout(&git.CheckoutOptions{Hash: mainTagCommit})
+				assert.NoError(t, err)
+				err = wt.Checkout(&git.CheckoutOptions{
+					Branch: plumbing.NewBranchReferenceName("feature"),
+					Create: true,
+				})
+				assert.NoError(t, err)
+
+				// Make commits on feature branch
+				r.DoCommit("feature-commit1")
+
+				nearest, err := NearestTag(r.Repo, prefix)
+				assert.NoError(t, err)
+				// Should find 1.0.0 (nearest in history), not 2.0.0 (latest globally)
+				assert.Equal(t, NewVersionT(t, "1.0.0"), nearest.Version)
+				assert.Equal(t, mainTagCommit, nearest.Ref.Hash())
+			})
+
+			t.Run("annotated tags", func(t *testing.T) {
+				r := NewTestRepo(t)
+				tagger := &object.Signature{
+					Name:  "test",
+					Email: "test@test.com",
+					When:  time.Now(),
+				}
+
+				err := CreateTagWithMessage(r.Repo, "1.0.0", prefix, "release message", tagger, false)
+				assert.NoError(t, err)
+				taggedCommit := r.Head().Hash()
+
+				r.DoCommit("commit1")
+
+				nearest, err := NearestTag(r.Repo, prefix)
+				assert.NoError(t, err)
+				assert.Equal(t, NewVersionT(t, "1.0.0"), nearest.Version)
+				assert.Equal(t, taggedCommit, nearest.Ref.Hash())
+			})
+		})
+	}
+
+	t.Run("prefix filtering", func(t *testing.T) {
+		t.Run("basic different prefixes", func(t *testing.T) {
+			r := NewTestRepo(t)
+
+			// Create tags with different prefixes
+			err := CreateTag(r.Repo, "1.0.0", "app-", false)
+			assert.NoError(t, err)
+			err = CreateTag(r.Repo, "2.0.0", "service-", false)
+			assert.NoError(t, err)
+
+			r.DoCommit("commit1")
+
+			// Should only find app- prefixed tag
+			nearest, err := NearestTag(r.Repo, "app-")
+			assert.NoError(t, err)
+			assert.Equal(t, NewVersionT(t, "1.0.0"), nearest.Version)
+
+			// Should only find service- prefixed tag
+			nearest, err = NearestTag(r.Repo, "service-")
+			assert.NoError(t, err)
+			assert.Equal(t, NewVersionT(t, "2.0.0"), nearest.Version)
+		})
+
+		t.Run("no false matches with similar prefixes", func(t *testing.T) {
+			r := NewTestRepo(t)
+
+			// Create multiple similar tags
+			r.CreateTag("app-backend-0.4.5", r.Head().Hash())
+			r.CreateTag("app-backend-kotlin-0.4.5", r.Head().Hash())
+			r.CreateTag("app-backend-java-1.0.0", r.Head().Hash())
+			r.CreateTag("app-frontend-2.0.0", r.Head().Hash())
+
+			// Test exact prefix matching for "app-backend-"
+			nearestRef, err := NearestTag(r.Repo, "app-backend-")
+			assert.Nil(t, err)
+			assert.Equal(t, NewVersionT(t, "0.4.5").String(), nearestRef.Version.String())
+			assert.Equal(t, "app-backend-0.4.5", nearestRef.Ref.Name().Short())
+
+			// Test that "app-backend-kotlin-" finds only the kotlin tag
+			nearestRefKotlin, err := NearestTag(r.Repo, "app-backend-kotlin-")
+			assert.Nil(t, err)
+			assert.Equal(t, NewVersionT(t, "0.4.5").String(), nearestRefKotlin.Version.String())
+			assert.Equal(t, "app-backend-kotlin-0.4.5", nearestRefKotlin.Ref.Name().Short())
+
+			// Test that "app-frontend-" finds only the frontend tag
+			nearestRefFrontend, err := NearestTag(r.Repo, "app-frontend-")
+			assert.Nil(t, err)
+			assert.Equal(t, NewVersionT(t, "2.0.0").String(), nearestRefFrontend.Version.String())
+			assert.Equal(t, "app-frontend-2.0.0", nearestRefFrontend.Ref.Name().Short())
+		})
+
+		t.Run("no match when prefix has no exact semantic version tags", func(t *testing.T) {
+			r := NewTestRepo(t)
+
+			// Create tags that don't match the prefix exactly
+			r.CreateTag("app-backend-kotlin-0.4.5", r.Head().Hash())
+			r.CreateTag("app-backend-java-1.0.0", r.Head().Hash())
+
+			// Test that "app-backend-" finds no matches (no exact prefix match)
+			_, err := NearestTag(r.Repo, "app-backend-")
+			assert.ErrorIs(t, err, ErrNoTagFound)
+		})
+
+		t.Run("works with different commit history", func(t *testing.T) {
+			r := NewTestRepo(t)
+
+			// Create initial tag
+			firstCommit := r.Head().Hash()
+			r.CreateTag("service-0.1.0", firstCommit)
+			r.CreateTag("service-kotlin-0.1.0", firstCommit)
+
+			// Create second commit and add more tags
+			r.DoCommit("second commit")
+			secondCommit := r.Head().Hash()
+			r.CreateTag("service-0.2.0", secondCommit)
+			r.CreateTag("service-kotlin-0.2.0", secondCommit)
+
+			// Create third commit without tags
+			r.DoCommit("third commit")
+
+			// NearestTag should find the most recent tag in commit history
+			nearestRef, err := NearestTag(r.Repo, "service-")
+			assert.Nil(t, err)
+			assert.Equal(t, NewVersionT(t, "0.2.0").String(), nearestRef.Version.String())
+			assert.Equal(t, "service-0.2.0", nearestRef.Ref.Name().Short())
+
+			// Check kotlin prefix separately
+			nearestRefKotlin, err := NearestTag(r.Repo, "service-kotlin-")
+			assert.Nil(t, err)
+			assert.Equal(t, NewVersionT(t, "0.2.0").String(), nearestRefKotlin.Version.String())
+			assert.Equal(t, "service-kotlin-0.2.0", nearestRefKotlin.Ref.Name().Short())
+		})
+	})
+}
+
+//nolint:paralleltest
+func TestNearestTagPerformance(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping performance test in short mode")
+	}
+
+	r := NewTestRepo(t)
+	prefix := "perf-"
+	err := CreateTag(r.Repo, "1.0.0", prefix, false) //Create perf-1.0.0 tag
+	// Create many commits to simulate performance scenario
+	numCommits := 5000
+	for i := 1; i <= numCommits; i++ { //Create 1000 commits with other tag
+		version := fmt.Sprintf("%d.0.0", i)
+		err := CreateTag(r.Repo, version, "other", false)
+		assert.NoError(t, err)
+		if i < numCommits {
+			r.DoCommit(fmt.Sprintf("commit-%d", i))
+		}
+	}
+
+	// Make some commits without tags
+	for i := 0; i < 10; i++ {
+		r.DoCommit(fmt.Sprintf("untagged-commit-%d", i))
+	}
+
+	start := time.Now()
+	nearest, err := NearestTag(r.Repo, prefix) //Has to walk all the way back to the first commit to find nearest perf- tag
+	duration := time.Since(start)
+
+	assert.NoError(t, err)
+	assert.Equal(t, NewVersionT(t, "1.0.0"), nearest.Version)
+
+	t.Logf("NearestTag with %d commits took %v", numCommits, duration)
+	// Should complete reasonably quickly even with many tags
+	assert.Less(t, duration, 10*time.Millisecond)
 }

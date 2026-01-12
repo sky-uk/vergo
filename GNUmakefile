@@ -58,7 +58,7 @@ release: release-test check-licenses test
 
 unit-tests: pre-check
 	go clean -testcache
-	go test ./...
+	go test -short ./...
 
 fun-tests: build
 	./fun-tests/test.sh

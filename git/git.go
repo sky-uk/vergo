@@ -3,13 +3,13 @@ package git
 import (
 	"errors"
 	"fmt"
-	"github.com/go-git/go-git/v5/plumbing/storer"
 	"net"
 	"os"
 	"regexp"
 	"sort"
 	"strings"
 
+	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 
@@ -344,41 +344,32 @@ func CurrentVersion(repo *gogit.Repository, prefix string, preRelease release.Pr
 }
 
 func NearestTag(repo *gogit.Repository, prefix string) (SemverRef, error) {
-
 	head, err := repo.Head()
 	if err != nil {
 		return EmptyRef, err
 	}
 
+	// Build a map of commit hash -> matching tags (only once)
+	tagMap, err := buildTagMap(repo, prefix)
+	if err != nil {
+		return EmptyRef, err
+	}
+
+	// Check HEAD first
+	if tags, exists := tagMap[head.Hash()]; exists {
+		return tags[0], nil // Return first matching tag
+	}
+
+	// Walk commit history and check map
 	commitIter, err := repo.Log(&gogit.LogOptions{From: head.Hash()})
 	if err != nil {
 		return EmptyRef, fmt.Errorf("failed to get commit log: %w", err)
 	}
-	var nearestTag string
-	var matchingRef *plumbing.Reference
+
+	var nearestTag SemverRef
 	err = commitIter.ForEach(func(commit *object.Commit) error {
-		// Get the tags pointing to this commit
-		tags, err := repo.Tags()
-		if err != nil {
-			return err
-		}
-
-		err = tags.ForEach(func(ref *plumbing.Reference) error {
-			if head.Hash() == ref.Hash() || ref.Hash() == commit.Hash {
-				tagName := ref.Name().Short()
-				if strings.HasPrefix(tagName, prefix) {
-					nearestTag = tagName
-					matchingRef = ref
-					return storer.ErrStop
-				}
-			}
-			return nil
-		})
-		if err != nil {
-			return err
-		}
-
-		if nearestTag != "" {
+		if tags, exists := tagMap[commit.Hash]; exists {
+			nearestTag = tags[0] // Take first matching tag
 			return storer.ErrStop
 		}
 		return nil
@@ -388,20 +379,58 @@ func NearestTag(repo *gogit.Repository, prefix string) (SemverRef, error) {
 		return EmptyRef, fmt.Errorf("failed to iterate over commits: %w", err)
 	}
 
-	if nearestTag == "" {
+	if nearestTag.Version == nil {
 		return EmptyRef, ErrNoTagFound
 	}
 
-	versionString := strings.TrimPrefix(nearestTag, prefix)
-	newVersion, err := semver.NewVersion(versionString)
+	return nearestTag, nil
+}
+
+func buildTagMap(repo *gogit.Repository, prefix string) (map[plumbing.Hash][]SemverRef, error) {
+	tagMap := make(map[plumbing.Hash][]SemverRef)
+	tagPrefix := refTagPrefix + prefix
+	re := regexp.MustCompile("^" + tagPrefix + semVerRegex + "$")
+
+	tags, err := repo.Tags()
 	if err != nil {
-		return EmptyRef, err
+		return nil, err
 	}
-	latest, err := SemverRef{
-		Version: newVersion,
-		Ref:     matchingRef,
-	}, nil
-	return latest, nil
+
+	err = tags.ForEach(func(ref *plumbing.Reference) error {
+		tagName := ref.Name().String()
+		if re.MatchString(tagName) {
+			versionString := strings.TrimPrefix(tagName, tagPrefix)
+			if version, err := semver.NewVersion(versionString); err == nil {
+				// Handle both lightweight and annotated tags
+				var commitHash plumbing.Hash
+				var tagRef *plumbing.Reference
+
+				if tagObject, err := repo.TagObject(ref.Hash()); err == nil {
+					// Annotated tag - use the target commit hash
+					commitHash = tagObject.Target
+					// Create a reference that points to the commit, not the tag object
+					tagRef = plumbing.NewHashReference(ref.Name(), commitHash)
+				} else if err == plumbing.ErrObjectNotFound {
+					// Lightweight tag - use the tag reference hash directly
+					commitHash = ref.Hash()
+					tagRef = ref
+				} else {
+					return err
+				}
+
+				semverRef := SemverRef{Version: version, Ref: tagRef}
+				tagMap[commitHash] = append(tagMap[commitHash], semverRef)
+			}
+		}
+		return nil
+	})
+
+	// Sort tags for each commit by semantic version (descending)
+	for hash := range tagMap {
+		sort.Sort(sort.Reverse(SemverRefColl(tagMap[hash])))
+	}
+
+	return tagMap, err
 }
 
 func BranchExists(repo *gogit.Repository, branchName string) (bool, error) {
